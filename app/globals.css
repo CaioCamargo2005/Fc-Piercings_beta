@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+:root {
+  --gold: #C9A84C;
+  --gold-light: #E8C97A;
+  --gold-dark: #8B6914;
+  --gold-shine: #F5E0A0;
+  --black: #0A0A0A;
+  --black-soft: #111111;
+  --black-mid: #1A1A1A;
+  --black-card: #161616;
+  --white: #FAF9F6;
+  --white-off: #F2EFE5;
+  --gray-light: #D8D4C8;
+  --gray-mid: #888070;
+  --gray-dark: #444038;
+
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+
+  --header-h: 72px;
+  --nav-h: 48px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--black-soft); }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+@keyframes goldPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(201,168,76,0); }
+}
+
+.animate-fadeDown { animation: fadeDown 0.22s ease forwards; }
+.animate-fadeUp   { animation: fadeUp   0.28s ease forwards; }
+
+.gold-text {
+  background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 40%, var(--gold-shine) 60%, var(--gold) 80%, var(--gold-dark) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
+  color: var(--black);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: filter 0.2s, transform 0.15s;
+}
+.btn-gold:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-outline-gold {
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-outline-gold:hover {
+  background: var(--gold);
+  color: var(--black);
+}
