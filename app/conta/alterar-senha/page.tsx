@@ -6,7 +6,7 @@ import { Eye, EyeOff, Lock, ArrowLeft, Check } from "lucide-react";
 import { useAuth } from "@/lib/auth-mock";
 
 export default function AlterarSenhaPage() {
-  const { loggedIn } = useAuth();
+  const { loggedIn, loading: authLoading } = useAuth();
   const [form, setForm] = useState({ current: "", next: "", confirm: "" });
   const [show, setShow] = useState({ current: false, next: false, confirm: false });
   const [loading, setLoading] = useState(false);
@@ -54,6 +54,15 @@ export default function AlterarSenhaPage() {
     padding: "12px 44px", color: "var(--white)",
     fontSize: 14, outline: "none", transition: "border-color 0.2s",
   };
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 40, height: 40, borderRadius: "50%", border: "3px solid rgba(201,168,76,0.2)", borderTopColor: "var(--gold)", animation: "spin 0.8s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   if (!loggedIn) {
     return (

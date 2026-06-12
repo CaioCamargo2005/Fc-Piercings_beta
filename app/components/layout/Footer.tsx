@@ -134,6 +134,7 @@ export default function Footer() {
             { label: "Política de Trocas", href: "/politica-de-trocas"  },
             { label: "Quem Somos",         href: "/quem-somos"          },
             { label: "Privacidade",        href: "/privacidade"         },
+            { label: "Termos de Uso",       href: "/termos"              },
           ].map((l) => (
             <Link key={l.label} href={l.href}
               style={{ display: "block", color: "var(--gray-mid)", fontSize: 13, marginBottom: 8, transition: "color 0.15s" }}

@@ -4,10 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, Check } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 type AccountType = "pessoa_fisica" | "pessoa_juridica";
 
 export default function CadastroPage() {
+  const router = useRouter();
   const [accountType, setAccountType] = useState<AccountType>("pessoa_fisica");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -104,10 +107,58 @@ export default function CadastroPage() {
   const strengthColor = ["", "#e05555", "#e05555", "#e09055", "#C9A84C", "#4CAF50"][passwordStrength];
   const strengthLabel = ["", "Muito fraca", "Fraca", "Razoável", "Boa", "Forte"][passwordStrength];
 
-  function handleSubmit(e: React.FormEvent) {
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.password !== form.confirm) { setError("As senhas não conferem."); return; }
     setLoading(true);
-    setTimeout(() => setLoading(false), 1500);
+    setError("");
+    try {
+      const supabase = createClient();
+
+      // 1. Cria o usuário no Supabase Auth
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: { name: form.nome },  // passado ao trigger que cria o profile
+          emailRedirectTo: `${window.location.origin}/conta`,
+        },
+      });
+
+      if (signUpError) throw new Error(signUpError.message);
+
+      // 2. Se confirmação de e-mail está desativada, sessão já existe
+      //    Se está ativada, signUpData.session é null — tudo bem, o trigger já criou o profile
+      const userId = signUpData.user?.id;
+      if (!userId) throw new Error("Erro inesperado ao criar conta.");
+
+      // 3. Salva dados extras no profile (funciona mesmo sem sessão via service role no trigger)
+      //    Tentamos atualizar — se falhar por RLS, o trigger já terá salvo o básico
+      await supabase.from("profiles").upsert({
+        id: userId,
+        email: form.email,
+        name: form.nome,
+        phone: form.telefone || null,
+        cpf: accountType === "pessoa_fisica" ? form.cpf || null : null,
+        cnpj: accountType === "pessoa_juridica" ? form.cnpj || null : null,
+        account_type: accountType,
+      } as never, { onConflict: "id" });
+
+      setSuccess(true);
+
+      // Se já tem sessão (e-mail confirmação desativado), vai para /conta
+      // Se não tem (e-mail de confirmação ativado), fica na tela de sucesso
+      if (signUpData.session) {
+        setTimeout(() => router.push("/conta"), 1500);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao criar conta.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const inputStyle = {

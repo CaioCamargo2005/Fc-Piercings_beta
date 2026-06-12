@@ -108,7 +108,7 @@ export default function Header() {
               >
                 <User size={18} />
                 <span className="hidden sm:block text-sm">
-                  {loggedIn ? user?.name.split(" ")[0] : "Entrar"}
+                  {loggedIn ? user?.name?.split(" ")?.[0] ?? user?.email?.split("@")?.[0] : "Entrar"}
                 </span>
                 <ChevronDown size={14} style={{ opacity: 0.6 }} />
               </button>
@@ -123,7 +123,7 @@ export default function Header() {
                     <>
                       <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(201,168,76,0.1)" }}>
                         <p style={{ color: "var(--gold)", fontSize: 13, fontWeight: 600 }}>
-                          Olá, {user?.name.split(" ")[0]}!
+                          Olá, {user?.name?.split(" ")?.[0] ?? user?.email?.split("@")?.[0]}!
                         </p>
                       </div>
                       {[

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth-mock";
+// auth-mock now uses real Supabase under the hood
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

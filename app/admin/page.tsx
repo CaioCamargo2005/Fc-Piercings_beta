@@ -21,7 +21,7 @@ const EMPTY_PRODUCT: Omit<Product, "id" | "createdAt"> = {
 const CATEGORIES = ["Titânio Natural", "Titânio PVD Gold", "Aço Natural", "Aço PVD Gold"];
 
 export default function AdminPage() {
-  const { user, loggedIn, logout } = useAuth();
+  const { user, loggedIn, loading, logout } = useAuth();
   const [tab, setTab] = useState<AdminTab>("produtos");
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [search, setSearch] = useState("");
@@ -34,13 +34,29 @@ export default function AdminPage() {
   const [imageError, setImageError] = useState("");
 
   /* ── Proteção de rota ── */
-  // Por enquanto qualquer usuário logado acessa
-  // Quando tiver backend: verificar user.role === "admin"
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--black)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 40, height: 40, borderRadius: "50%", border: "3px solid rgba(201,168,76,0.2)", borderTopColor: "var(--gold)", animation: "spin 0.8s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   if (!loggedIn) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--black)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
         <p style={{ color: "var(--gray-mid)" }}>Acesso restrito.</p>
         <a href="/login" style={{ color: "var(--gold)", fontSize: 14 }}>← Fazer login</a>
+      </div>
+    );
+  }
+
+  if (user?.role !== "admin") {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--black)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+        <p style={{ color: "var(--gray-mid)" }}>Você não tem permissão para acessar esta página.</p>
+        <a href="/" style={{ color: "var(--gold)", fontSize: 14 }}>← Voltar à loja</a>
       </div>
     );
   }

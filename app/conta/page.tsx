@@ -8,6 +8,7 @@ import {
   Edit2, Plus, Trash2, ChevronRight, ShoppingBag, LayoutDashboard, CreditCard,
 } from "lucide-react";
 import { useAuth, Order, Address } from "@/lib/auth-mock";
+import { createClient } from "@/lib/supabase/client";
 
 type Tab = "conta" | "pedidos" | "desejos" | "cartoes";
 
@@ -19,11 +20,25 @@ const statusStyle: Record<Order["status"], { color: string; bg: string; label: s
 };
 
 export default function ContaPage() {
-  const { user, loggedIn, logout, updateUser } = useAuth();
+  const { user, loggedIn, loading, logout, updateUser } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("conta");
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: user?.name ?? "", phone: user?.phone ?? "" });
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: "50%",
+          border: "3px solid rgba(201,168,76,0.2)",
+          borderTopColor: "var(--gold)",
+          animation: "spin 0.8s linear infinite",
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   if (!loggedIn || !user) {
     return (
@@ -41,7 +56,15 @@ export default function ContaPage() {
     router.push("/");
   }
 
-  function saveEdit() {
+  async function saveEdit() {
+    const supabase = createClient();
+    if (user) {
+      await supabase.from("profiles").update({
+        name: editForm.name,
+        phone: editForm.phone,
+        updated_at: new Date().toISOString(),
+      } as never).eq("id", user.id);
+    }
     updateUser({ name: editForm.name, phone: editForm.phone });
     setEditing(false);
   }
@@ -92,7 +115,7 @@ export default function ContaPage() {
               flexShrink: 0,
             }}>
               <span style={{ color: "var(--black)", fontWeight: 700, fontSize: 16 }}>
-                {user.name.charAt(0).toUpperCase()}
+                {(user.name ?? user.email ?? '?').charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
@@ -195,7 +218,7 @@ export default function ContaPage() {
               <div style={card}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <p style={sectionTitle}>Dados Cadastrais</p>
-                  <button onClick={() => { setEditing(!editing); setEditForm({ name: user.name, phone: user.phone }); }}
+                  <button onClick={() => { setEditing(!editing); setEditForm({ name: user.name ?? "", phone: user.phone ?? "" }); }}
                     style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "1px solid rgba(201,168,76,0.3)", borderRadius: 8, padding: "6px 12px", color: "var(--gold)", fontSize: 12, cursor: "pointer" }}>
                     <Edit2 size={12} />{editing ? "Cancelar" : "Editar"}
                   </button>
@@ -220,10 +243,10 @@ export default function ContaPage() {
                 ) : (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                     {[
-                      { label: "Nome", value: user.name },
+                      { label: "Nome", value: user.name ?? "" },
                       { label: "E-mail", value: user.email },
                       { label: "Telefone", value: user.phone },
-                      { label: user.accountType === "pessoa_fisica" ? "CPF" : "CNPJ", value: user.accountType === "pessoa_fisica" ? user.cpf : user.cnpj },
+                      { label: user.account_type === "pessoa_fisica" ? "CPF" : "CNPJ", value: user.account_type === "pessoa_fisica" ? user.cpf : user.cnpj },
                     ].map((f) => (
                       <div key={f.label}>
                         <p style={fieldLabel}>{f.label}</p>
@@ -248,8 +271,8 @@ export default function ContaPage() {
                   user.addresses.map((addr: Address) => (
                     <div key={addr.id} style={{
                       padding: 16, borderRadius: 10,
-                      border: addr.principal ? "1px solid rgba(201,168,76,0.4)" : "1px solid rgba(201,168,76,0.1)",
-                      background: addr.principal ? "rgba(201,168,76,0.04)" : "transparent",
+                      border: addr.is_primary ? "1px solid rgba(201,168,76,0.4)" : "1px solid rgba(201,168,76,0.1)",
+                      background: addr.is_primary ? "rgba(201,168,76,0.04)" : "transparent",
                       display: "flex", justifyContent: "space-between", alignItems: "flex-start",
                     }}>
                       <div style={{ display: "flex", gap: 12 }}>
@@ -257,15 +280,15 @@ export default function ContaPage() {
                         <div>
                           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
                             <p style={{ color: "var(--white)", fontSize: 13, fontWeight: 600 }}>{addr.label}</p>
-                            {addr.principal && (
+                            {addr.is_primary && (
                               <span style={{ background: "rgba(201,168,76,0.15)", color: "var(--gold)", fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>
                                 PRINCIPAL
                               </span>
                             )}
                           </div>
                           <p style={{ color: "var(--gray-mid)", fontSize: 13, lineHeight: 1.6 }}>
-                            {addr.rua}, {addr.numero} — {addr.bairro}<br />
-                            {addr.cidade} / {addr.uf} · CEP {addr.cep}
+                            {addr.street}, {addr.number} — {addr.neighborhood}<br />
+                            {addr.city} / {addr.state} · CEP {addr.cep}
                           </p>
                         </div>
                       </div>
