@@ -318,3 +318,19 @@ left join public.product_images img
 --   Supabase → Table Editor → profiles
 --   Encontre o e-mail → clique na linha → mude role para 'admin' → Save
 -- ================================================================
+
+-- ================================================================
+-- MIGRAÇÃO: adicionar coluna sides na tabela products
+-- Rode isso no SQL Editor se o banco já foi criado
+-- ================================================================
+alter table public.products
+  add column if not exists sides text[];
+
+-- ================================================================
+-- MIGRAÇÃO: datas de expiração para lançamentos e ofertas
+-- ================================================================
+alter table public.products
+  add column if not exists sale_ends_at timestamptz;
+  -- quando a oferta termina (null = sem prazo definido)
+
+-- "is_new" não precisa de coluna de data — calculamos com created_at + 7 dias

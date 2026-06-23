@@ -7,13 +7,15 @@ export type CartItem = {
   product: Product;
   qty: number;
   selectedSize?: string;
+  selectedSide?: string;
+  selectedColor?: string;
 };
 
 type CartContextType = {
   items: CartItem[];
   count: number;                          // total de unidades no carrinho
   subtotal: number;                       // valor sem frete
-  addItem: (product: Product, qty: number, size?: string) => void;
+  addItem: (product: Product, qty: number, size?: string, side?: string, color?: string) => void;
   removeItem: (productId: string, size?: string) => void;
   updateQty: (productId: string, qty: number, size?: string) => void;
   clearCart: () => void;
@@ -26,14 +28,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
   /* chave única por produto + tamanho */
-  function key(productId: string, size?: string) {
-    return size ? `${productId}__${size}` : productId;
+  function key(productId: string, size?: string, side?: string, color?: string) {
+    return `${productId}__${size ?? ""}__${side ?? ""}__${color ?? ""}`;
   }
 
-  function addItem(product: Product, qty: number, size?: string) {
+  function addItem(product: Product, qty: number, size?: string, side?: string, color?: string) {
     setItems(prev => {
-      const k = key(product.id, size);
-      const existing = prev.find(i => key(i.product.id, i.selectedSize) === k);
+      const k = key(product.id, size, side, color);
+      const existing = prev.find(i => key(i.product.id, i.selectedSize, i.selectedSide, i.selectedColor) === k);
       if (existing) {
         return prev.map(i =>
           key(i.product.id, i.selectedSize) === k
@@ -45,17 +47,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  function removeItem(productId: string, size?: string) {
-    const k = key(productId, size);
-    setItems(prev => prev.filter(i => key(i.product.id, i.selectedSize) !== k));
+  function removeItem(productId: string, size?: string, side?: string, color?: string) {
+    const k = key(productId, size, side, color);
+    setItems(prev => prev.filter(i => key(i.product.id, i.selectedSize, i.selectedSide, i.selectedColor) !== k));
   }
 
-  function updateQty(productId: string, qty: number, size?: string) {
-    const k = key(productId, size);
-    if (qty <= 0) { removeItem(productId, size); return; }
+  function updateQty(productId: string, qty: number, size?: string, side?: string, color?: string) {
+    const k = key(productId, size, side, color);
+    if (qty <= 0) { removeItem(productId, size, side, color); return; }
     setItems(prev =>
       prev.map(i =>
-        key(i.product.id, i.selectedSize) === k
+        key(i.product.id, i.selectedSize, i.selectedSide, i.selectedColor) === k
           ? { ...i, qty: Math.min(qty, i.product.stock) }
           : i
       )
@@ -64,8 +66,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function clearCart() { setItems([]); }
 
-  function isInCart(productId: string, size?: string) {
-    return items.some(i => key(i.product.id, i.selectedSize) === key(productId, size));
+  function isInCart(productId: string, size?: string, side?: string, color?: string) {
+    return items.some(i => key(i.product.id, i.selectedSize, i.selectedSide, i.selectedColor) === key(productId, size, side, color));
   }
 
   const count    = items.reduce((acc, i) => acc + i.qty, 0);

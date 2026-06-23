@@ -5,53 +5,52 @@ export type NavCategory = {
   subcategories?: SubItem[];
 };
 
+// As subcategorias aqui são apenas atalhos de filtro
+// O link principal (/categorias/slug) mostra TODOS os produtos da categoria
+// Os sub-links (/categorias/slug?sub=argolas) pré-filtram por subcategoria
 export const navCategories: NavCategory[] = [
   {
     label: "Titânio Natural",
     href: "/categorias/titanio-natural",
     subcategories: [
-      { label: "Argolas Titânio", href: "/categorias/titanio-natural/argolas" },
-      { label: "Labret Titânio", href: "/categorias/titanio-natural/labret" },
-      { label: "Septo Titânio", href: "/categorias/titanio-natural/septo" },
-      { label: "Nostril Titânio", href: "/categorias/titanio-natural/nostril" },
-      { label: "Umbigo Titânio", href: "/categorias/titanio-natural/umbigo" },
-      { label: "Hélix / Cartilagem", href: "/categorias/titanio-natural/helix" },
-      { label: "Ver todos", href: "/categorias/titanio-natural" },
+      { label: "Argolas",         href: "/categorias/titanio-natural?sub=Argolas"          },
+      { label: "Labret",          href: "/categorias/titanio-natural?sub=Labret"           },
+      { label: "Septo",           href: "/categorias/titanio-natural?sub=Septo"            },
+      { label: "Nostril",         href: "/categorias/titanio-natural?sub=Nostril"          },
+      { label: "Umbigo",          href: "/categorias/titanio-natural?sub=Umbigo"           },
+      { label: "Hélix",           href: "/categorias/titanio-natural?sub=Hélix"            },
     ],
   },
   {
     label: "Titânio PVD Gold",
     href: "/categorias/titanio-pvd-gold",
     subcategories: [
-      { label: "Argolas Gold", href: "/categorias/titanio-pvd-gold/argolas" },
-      { label: "Labret Gold", href: "/categorias/titanio-pvd-gold/labret" },
-      { label: "Septo Gold", href: "/categorias/titanio-pvd-gold/septo" },
-      { label: "Nostril Gold", href: "/categorias/titanio-pvd-gold/nostril" },
-      { label: "Umbigo Gold", href: "/categorias/titanio-pvd-gold/umbigo" },
-      { label: "Ver todos", href: "/categorias/titanio-pvd-gold" },
+      { label: "Argolas",         href: "/categorias/titanio-pvd-gold?sub=Argolas"         },
+      { label: "Labret",          href: "/categorias/titanio-pvd-gold?sub=Labret"          },
+      { label: "Septo",           href: "/categorias/titanio-pvd-gold?sub=Septo"           },
+      { label: "Nostril",         href: "/categorias/titanio-pvd-gold?sub=Nostril"         },
+      { label: "Umbigo",          href: "/categorias/titanio-pvd-gold?sub=Umbigo"          },
     ],
   },
   {
     label: "Aço Natural",
     href: "/categorias/aco-natural",
     subcategories: [
-      { label: "Argolas Aço", href: "/categorias/aco-natural/argolas" },
-      { label: "Labret Aço", href: "/categorias/aco-natural/labret" },
-      { label: "Septo Aço", href: "/categorias/aco-natural/septo" },
-      { label: "Nostril Aço", href: "/categorias/aco-natural/nostril" },
-      { label: "Ver todos", href: "/categorias/aco-natural" },
+      { label: "Argolas",         href: "/categorias/aco-natural?sub=Argolas"              },
+      { label: "Labret",          href: "/categorias/aco-natural?sub=Labret"               },
+      { label: "Septo",           href: "/categorias/aco-natural?sub=Septo"                },
+      { label: "Nostril",         href: "/categorias/aco-natural?sub=Nostril"              },
     ],
   },
   {
     label: "Aço PVD Gold",
     href: "/categorias/aco-pvd-gold",
     subcategories: [
-      { label: "Argolas Aço Gold", href: "/categorias/aco-pvd-gold/argolas" },
-      { label: "Labret Aço Gold", href: "/categorias/aco-pvd-gold/labret" },
-      { label: "Semi Joias", href: "/categorias/aco-pvd-gold/semi-joias" },
-      { label: "Ver todos", href: "/categorias/aco-pvd-gold" },
+      { label: "Argolas",         href: "/categorias/aco-pvd-gold?sub=Argolas"             },
+      { label: "Labret",          href: "/categorias/aco-pvd-gold?sub=Labret"              },
+      { label: "Semi Joias",      href: "/categorias/aco-pvd-gold?sub=Semi+Joias"          },
     ],
   },
-  { label: "Ofertas", href: "/ofertas" },
-  { label: "Lançamentos", href: "/lancamentos" },
+  { label: "Ofertas",      href: "/ofertas"      },
+  { label: "Lançamentos",  href: "/lancamentos"  },
 ];

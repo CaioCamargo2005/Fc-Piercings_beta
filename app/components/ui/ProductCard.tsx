@@ -92,6 +92,13 @@ export default function ProductCard({ product, onAddToCart }: Props) {
         </div>
       </Link>
 
+      {/* esgotado overlay */}
+      {product.stock === 0 && (
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1, borderRadius: 12 }}>
+          <span style={{ background: "rgba(224,85,85,0.9)", color: "#fff", fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 20 }}>ESGOTADO</span>
+        </div>
+      )}
+
       {/* info */}
       <div style={{ padding: "12px 14px 14px" }}>
         <p style={{ color: "var(--gray-mid)", fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 4 }}>
@@ -125,12 +132,13 @@ export default function ProductCard({ product, onAddToCart }: Props) {
 
         {/* botão adicionar */}
         <button
-          onClick={() => { addItem(product, 1); onAddToCart?.(product); }}
+          onClick={() => { if (product.stock > 0) { addItem(product, 1); onAddToCart?.(product); } }}
           className="btn-gold"
           style={{
             width: "100%", padding: "8px", borderRadius: 8, border: "none",
-            fontSize: 12, fontWeight: 600, cursor: "pointer",
+            fontSize: 12, fontWeight: 600, cursor: product.stock === 0 ? "not-allowed" : "pointer",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            opacity: product.stock === 0 ? 0.5 : 1,
           }}
         >
           <ShoppingCart size={13} />

@@ -8,18 +8,17 @@ import {
   Package, Heart, LogOut, MessageCircle, Trash2, Plus, Minus,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-mock";
+import SearchBar from "@/app/components/ui/SearchBar";
 import { useCart } from "@/lib/cart-context";
 
 export default function Header() {
   const { user, loggedIn, logout } = useAuth();
   const { items, count, subtotal, removeItem, updateQty } = useCart();
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
-  const searchRef  = useRef<HTMLInputElement>(null);
   const userRef    = useRef<HTMLDivElement>(null);
   const cartRef    = useRef<HTMLDivElement>(null);
 
@@ -33,8 +32,6 @@ export default function Header() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
-
-  useEffect(() => { if (searchOpen) searchRef.current?.focus(); }, [searchOpen]);
 
   /* formata WhatsApp com lista do carrinho */
   function buildWhatsAppMsg() {
@@ -69,22 +66,8 @@ export default function Header() {
 
           {/* BUSCA */}
           <div className="hidden md:flex flex-1 justify-center">
-            <div className="relative w-full max-w-xl">
-              <input type="text" placeholder="Buscar produtos..."
-                value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                style={{
-                  width: "100%", background: "var(--black-mid)",
-                  border: "1px solid rgba(201,168,76,0.25)", borderRadius: 8,
-                  padding: "10px 44px 10px 16px", color: "var(--white)",
-                  fontSize: 14, outline: "none", transition: "border-color 0.2s",
-                }}
-                onFocus={e => (e.target.style.borderColor = "var(--gold)")}
-                onBlur={e => (e.target.style.borderColor = "rgba(201,168,76,0.25)")}
-              />
-              <button style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 44,
-                display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gold)" }}>
-                <Search size={18} />
-              </button>
+            <div style={{ width: "100%", maxWidth: 560 }}>
+              <SearchBar />
             </div>
           </div>
 
@@ -252,6 +235,12 @@ export default function Header() {
                               {item.selectedSize && (
                                 <p style={{ color: "var(--gray-mid)", fontSize: 11 }}>Tam: {item.selectedSize}</p>
                               )}
+                              {item.selectedSide && (
+                                <p style={{ color: "var(--gray-mid)", fontSize: 11 }}>Lado: {item.selectedSide}</p>
+                              )}
+                              {item.selectedColor && (
+                                <p style={{ color: "var(--gray-mid)", fontSize: 11 }}>Cor: {item.selectedColor}</p>
+                              )}
                               <p style={{ color: "var(--gold)", fontSize: 13, fontWeight: 700, marginTop: 2 }}>
                                 R$ {(item.product.price * item.qty).toFixed(2).replace(".", ",")}
                               </p>
@@ -338,18 +327,7 @@ export default function Header() {
         {searchOpen && (
           <div className="md:hidden animate-fadeDown"
             style={{ padding: "0 32px 12px", background: "var(--black-soft)" }}>
-            <div style={{ position: "relative" }}>
-              <input ref={searchRef} type="text" placeholder="Buscar produtos..."
-                value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                style={{ width: "100%", background: "var(--black-mid)",
-                  border: "1px solid var(--gold)", borderRadius: 8,
-                  padding: "10px 44px 10px 16px", color: "var(--white)", fontSize: 14, outline: "none" }}
-              />
-              <button style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 44,
-                display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gold)" }}>
-                <Search size={18} />
-              </button>
-            </div>
+            <SearchBar autoFocus onClose={() => setSearchOpen(false)} />
           </div>
         )}
       </header>

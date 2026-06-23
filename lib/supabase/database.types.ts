@@ -92,6 +92,7 @@ export type Database = {
           material: string | null;
           stock: number;
           sizes: string[] | null;        // ex: ["6mm","8mm","10mm"]
+          sides: string[] | null;        // ex: ["Direito","Esquerdo"] — opcional
           details: string[] | null;      // lista de características
           featured: boolean;
           is_new: boolean;
@@ -112,6 +113,9 @@ export type Database = {
           material?: string | null;
           stock?: number;
           sizes?: string[] | null;
+          sides?: string[] | null;
+          colors?: string[] | null;
+          sale_ends_at?: string | null;
           details?: string[] | null;
           featured?: boolean;
           is_new?: boolean;
@@ -131,6 +135,9 @@ export type Database = {
           material?: string | null;
           stock?: number;
           sizes?: string[] | null;
+          sides?: string[] | null;
+          colors?: string[] | null;
+          sale_ends_at?: string | null;
           details?: string[] | null;
           featured?: boolean;
           is_new?: boolean;

@@ -33,9 +33,10 @@ export default function CarrinhoPage() {
 
   function buildWhatsAppMsg() {
     const shipping = SHIPPING_OPTIONS.find(s => s.id === selectedShipping);
-    const lines = items.map(i =>
-      `• ${i.qty}x ${i.product.name}${i.selectedSize ? ` (${i.selectedSize})` : ""} — R$ ${(i.product.price * i.qty).toFixed(2).replace(".", ",")}`
-    ).join("\n");
+    const lines = items.map(i => {
+      const opts = [i.selectedSize, i.selectedSide, i.selectedColor].filter(Boolean).join(", ");
+      return `• ${i.qty}x ${i.product.name}${opts ? ` (${opts})` : ""} — R$ ${(i.product.price * i.qty).toFixed(2).replace(".", ",")}`;
+    }).join("\n");
     const parts = [
       `Olá! Gostaria de finalizar meu pedido:\n\n${lines}`,
       `\nSubtotal: R$ ${subtotal.toFixed(2).replace(".", ",")}`,

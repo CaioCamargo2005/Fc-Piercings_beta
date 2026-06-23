@@ -12,6 +12,7 @@ export type Product = {
   images: string[];              // URLs — por enquanto vazias, placeholder no componente
   stock: number;
   sizes?: string[];              // ex: ["6mm","8mm","10mm"]
+  sides?: string[];              // ex: ["Direito","Esquerdo"]
   colors?: string[];             // ex: ["Natural","PVD Gold"]
   featured: boolean;             // aparece em "Destaques"
   isNew: boolean;                // aparece em "Lançamentos"

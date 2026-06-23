@@ -25,6 +25,12 @@ export default function ContaPage() {
   const [tab, setTab] = useState<Tab>("conta");
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: user?.name ?? "", phone: user?.phone ?? "" });
+  const [addressModal, setAddressModal] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    label: "Casa", cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "", is_primary: false,
+  });
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState("");
 
   if (loading) {
     return (
@@ -71,6 +77,44 @@ export default function ContaPage() {
 
   function removeWishlistItem(id: string) {
     updateUser({ wishlist: user?.wishlist.filter((w) => w.id !== id) });
+  }
+
+  async function saveAddress() {
+    if (!user) return;
+    if (!addressForm.cep || !addressForm.street || !addressForm.number || !addressForm.city || !addressForm.state) {
+      setAddressError("Preencha todos os campos obrigatórios."); return;
+    }
+    setAddressLoading(true);
+    setAddressError("");
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.from("addresses").insert({
+        user_id:      user.id,
+        label:        addressForm.label || "Casa",
+        cep:          addressForm.cep.replace(/\D/g, ""),
+        street:       addressForm.street,
+        number:       addressForm.number,
+        complement:   addressForm.complement || null,
+        neighborhood: addressForm.neighborhood,
+        city:         addressForm.city,
+        state:        addressForm.state.toUpperCase().slice(0, 2),
+        is_primary:   addressForm.is_primary,
+      } as never).select().single();
+      if (error) throw new Error(error.message);
+      updateUser({ addresses: [...(user.addresses ?? []), data as Address] });
+      setAddressModal(false);
+    } catch (err: unknown) {
+      setAddressError(err instanceof Error ? err.message : "Erro ao salvar endereço.");
+    } finally {
+      setAddressLoading(false);
+    }
+  }
+
+  async function deleteAddress(id: string) {
+    if (!user || !confirm("Remover este endereço?")) return;
+    const supabase = createClient();
+    await supabase.from("addresses").delete().eq("id", id);
+    updateUser({ addresses: user.addresses.filter(a => a.id !== id) });
   }
 
   /* ── estilos reutilizáveis ── */
@@ -292,9 +336,14 @@ export default function ContaPage() {
                           </p>
                         </div>
                       </div>
-                      <button style={{ background: "none", border: "none", color: "var(--gray-mid)", cursor: "pointer", padding: 4 }}>
-                        <Edit2 size={14} />
-                      </button>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button style={{ background: "none", border: "none", color: "var(--gray-mid)", cursor: "pointer", padding: 4 }}>
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => deleteAddress(addr.id)} style={{ background: "none", border: "none", color: "#e05555", cursor: "pointer", padding: 4 }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
