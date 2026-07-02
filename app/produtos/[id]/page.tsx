@@ -103,7 +103,7 @@ export default function ProductPage() {
     </div>
   );
 
-  const discount = product.originalPrice
+  const discount = (product.originalPrice && product.originalPrice > product.price)
     ? Math.round((1 - product.price / product.originalPrice) * 100) : null;
 
   function handleAddToCart() {
@@ -116,7 +116,7 @@ export default function ProductPage() {
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-");
 
   return (
-    <div style={{ background: "var(--white)", padding: "32px", maxWidth: 1200, margin: "0 auto" }}>
+    <div className="px-4 sm:px-8" style={{ background: "var(--white)", paddingTop: 24, paddingBottom: 24, maxWidth: 1200, margin: "0 auto" }}>
       {/* breadcrumb */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 28, flexWrap: "wrap" }}>
         {[
@@ -132,7 +132,7 @@ export default function ProductPage() {
       </div>
 
       {/* GRID PRINCIPAL */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, marginBottom: 56 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 32, marginBottom: 48 }}>
         {/* FOTOS */}
         <div>
           <div style={{ background: "linear-gradient(135deg,#f0efe8,#e8e6dc)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", aspectRatio: "1", marginBottom: 12, overflow: "hidden" }}>
@@ -159,7 +159,7 @@ export default function ProductPage() {
         <div>
           {/* badges */}
           <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-            {discount && <span style={{ background: "#e05555", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>{discount}% OFF</span>}
+            {discount !== null && discount > 0 && <span style={{ background: "#e05555", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>{discount}% OFF</span>}
             {product.isNew && <span style={{ background: "linear-gradient(135deg,#8B6914,#C9A84C)", color: "var(--black)", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>NOVO</span>}
             {product.material && <span style={{ background: "rgba(201,168,76,0.1)", color: "var(--gold)", fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 6 }}>{product.material}</span>}
           </div>
@@ -168,7 +168,7 @@ export default function ProductPage() {
 
           {/* preço */}
           <div style={{ marginBottom: 20 }}>
-            {product.originalPrice && <p style={{ color: "var(--gray-mid)", fontSize: 14, textDecoration: "line-through" }}>R$ {product.originalPrice.toFixed(2).replace(".",",")}</p>}
+            {product.originalPrice && product.originalPrice > product.price && <p style={{ color: "var(--gray-mid)", fontSize: 14, textDecoration: "line-through" }}>R$ {product.originalPrice.toFixed(2).replace(".",",")}</p>}
             <p style={{ fontSize: 32, fontWeight: 800, background: "linear-gradient(135deg,#8B6914,#C9A84C)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1 }}>
               R$ {product.price.toFixed(2).replace(".",",")}
             </p>
@@ -302,7 +302,7 @@ export default function ProductPage() {
       </div>
 
       {/* DESCRIÇÃO + CARACTERÍSTICAS */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 56 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 24, marginBottom: 48 }}>
         {product.description && (
           <div style={{ padding: 24, background: "#f9f8f4", borderRadius: 12 }}>
             <h3 style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--black)", marginBottom: 12 }}>Descrição</h3>

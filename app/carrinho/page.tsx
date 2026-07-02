@@ -78,7 +78,7 @@ export default function CarrinhoPage() {
   }
 
   return (
-    <div style={{ background: "var(--white-off)", minHeight: "calc(100vh - 120px)", padding: "32px 32px" }}>
+    <div className="px-4 sm:px-8" style={{ background: "var(--white-off)", minHeight: "calc(100vh - 120px)", paddingTop: 24, paddingBottom: 24 }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
         {/* breadcrumb */}
@@ -88,7 +88,7 @@ export default function CarrinhoPage() {
           <span style={{ color: "var(--gray-mid)", fontSize: 13 }}>Carrinho</span>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24, alignItems: "start" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px]" style={{ gap: 24, alignItems: "start" }}>
 
           {/* ── COLUNA ESQUERDA — itens ── */}
           <div>
@@ -108,7 +108,7 @@ export default function CarrinhoPage() {
 
             {/* lista de itens */}
             <div style={{ ...card, marginBottom: 16 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px 40px",
+              <div className="hidden sm:grid" style={{ gridTemplateColumns: "1fr 120px 100px 40px",
                 padding: "10px 20px", borderBottom: "1px solid rgba(0,0,0,0.06)",
                 background: "rgba(0,0,0,0.02)" }}>
                 {["Produto", "Quantidade", "Preço", ""].map(h => (
@@ -119,11 +119,12 @@ export default function CarrinhoPage() {
 
               {items.map((item, i) => (
                 <div key={`${item.product.id}_${item.selectedSize}`}
-                  style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px 40px",
+                  className="flex flex-col sm:grid gap-3 sm:gap-0"
+                  style={{ gridTemplateColumns: "1fr 120px 100px 40px",
                     alignItems: "center", padding: "16px 20px",
                     borderBottom: i < items.length - 1 ? "1px solid rgba(0,0,0,0.05)" : "none" }}>
 
-                  <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                  <div className="w-full sm:w-auto" style={{ display: "flex", gap: 14, alignItems: "center" }}>
                     <div style={{ width: 64, height: 64, borderRadius: 8, flexShrink: 0,
                       background: "linear-gradient(135deg,#f0efe8,#e8e6dc)",
                       display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -133,7 +134,7 @@ export default function CarrinhoPage() {
                         : <span style={{ fontSize: 28 }}>💍</span>
                       }
                     </div>
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <Link href={`/produtos/${item.product.slug}`}
                         style={{ color: "var(--black)", fontSize: 14, fontWeight: 500, textDecoration: "none", lineHeight: 1.4 }}>
                         {item.product.name}
@@ -146,48 +147,55 @@ export default function CarrinhoPage() {
                           ⚠ Apenas {item.product.stock} em estoque
                         </p>
                       )}
+                      {/* preço inline no mobile, abaixo da foto */}
+                      <p className="sm:hidden" style={{ color: "var(--black)", fontSize: 15, fontWeight: 700, marginTop: 6 }}>
+                        R$ {(item.product.price * item.qty).toFixed(2).replace(".", ",")}
+                      </p>
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <button onClick={() => updateQty(item.product.id, item.qty - 1, item.selectedSize)}
-                      style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid rgba(0,0,0,0.12)",
-                        background: "#f5f5f0", cursor: "pointer", display: "flex",
-                        alignItems: "center", justifyContent: "center" }}>
-                      <Minus size={11} style={{ color: "var(--gray-mid)" }} />
-                    </button>
-                    <span style={{ width: 28, textAlign: "center", fontSize: 14, fontWeight: 600, color: "var(--black)" }}>
-                      {item.qty}
-                    </span>
-                    <button onClick={() => updateQty(item.product.id, item.qty + 1, item.selectedSize)}
-                      disabled={item.qty >= item.product.stock}
-                      style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid rgba(0,0,0,0.12)",
-                        background: "#f5f5f0", cursor: item.qty >= item.product.stock ? "not-allowed" : "pointer",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        opacity: item.qty >= item.product.stock ? 0.4 : 1 }}>
-                      <Plus size={11} style={{ color: "var(--gray-mid)" }} />
-                    </button>
-                  </div>
+                  {/* quantidade + preço + remover — linha própria no mobile */}
+                  <div className="w-full sm:w-auto sm:contents" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <button onClick={() => updateQty(item.product.id, item.qty - 1, item.selectedSize)}
+                        style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid rgba(0,0,0,0.12)",
+                          background: "#f5f5f0", cursor: "pointer", display: "flex",
+                          alignItems: "center", justifyContent: "center" }}>
+                        <Minus size={11} style={{ color: "var(--gray-mid)" }} />
+                      </button>
+                      <span style={{ width: 28, textAlign: "center", fontSize: 14, fontWeight: 600, color: "var(--black)" }}>
+                        {item.qty}
+                      </span>
+                      <button onClick={() => updateQty(item.product.id, item.qty + 1, item.selectedSize)}
+                        disabled={item.qty >= item.product.stock}
+                        style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid rgba(0,0,0,0.12)",
+                          background: "#f5f5f0", cursor: item.qty >= item.product.stock ? "not-allowed" : "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          opacity: item.qty >= item.product.stock ? 0.4 : 1 }}>
+                        <Plus size={11} style={{ color: "var(--gray-mid)" }} />
+                      </button>
+                    </div>
 
-                  <div>
-                    <p style={{ color: "var(--black)", fontSize: 15, fontWeight: 700 }}>
-                      R$ {(item.product.price * item.qty).toFixed(2).replace(".", ",")}
-                    </p>
-                    {item.qty > 1 && (
-                      <p style={{ color: "var(--gray-mid)", fontSize: 11 }}>
-                        R$ {item.product.price.toFixed(2).replace(".", ",")} cada
+                    <div className="hidden sm:block">
+                      <p style={{ color: "var(--black)", fontSize: 15, fontWeight: 700 }}>
+                        R$ {(item.product.price * item.qty).toFixed(2).replace(".", ",")}
                       </p>
-                    )}
-                  </div>
+                      {item.qty > 1 && (
+                        <p style={{ color: "var(--gray-mid)", fontSize: 11 }}>
+                          R$ {item.product.price.toFixed(2).replace(".", ",")} cada
+                        </p>
+                      )}
+                    </div>
 
-                  <button onClick={() => removeItem(item.product.id, item.selectedSize)}
-                    style={{ background: "none", border: "none", cursor: "pointer",
-                      color: "var(--gray-mid)", padding: 4, display: "flex" }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "#e05555")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "var(--gray-mid)")}
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                    <button onClick={() => removeItem(item.product.id, item.selectedSize)}
+                      style={{ background: "none", border: "none", cursor: "pointer",
+                        color: "var(--gray-mid)", padding: 4, display: "flex" }}
+                      onMouseEnter={e => (e.currentTarget.style.color = "#e05555")}
+                      onMouseLeave={e => (e.currentTarget.style.color = "var(--gray-mid)")}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -239,7 +247,7 @@ export default function CarrinhoPage() {
           </div>
 
           {/* ── COLUNA DIREITA — resumo ── */}
-          <div style={{ position: "sticky", top: 90 }}>
+          <div className="lg:sticky" style={{ top: 90 }}>
             <div style={{ ...card, padding: 24, marginBottom: 12 }}>
               <p style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700,
                 color: "var(--black)", marginBottom: 20 }}>Resumo do Pedido</p>

@@ -145,11 +145,11 @@ export default function ContaPage() {
   } as React.CSSProperties;
 
   return (
-    <div style={{ minHeight: "calc(100vh - 120px)", background: "var(--white)", padding: "40px 32px" }}>
-      <div style={{ maxWidth: 1000, margin: "0 auto", display: "grid", gridTemplateColumns: "220px 1fr", gap: 24, alignItems: "start" }}>
+    <div className="px-4 sm:px-8" style={{ minHeight: "calc(100vh - 120px)", background: "var(--white)", paddingTop: 32, paddingBottom: 32 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr]" style={{ maxWidth: 1000, margin: "0 auto", gap: 24, alignItems: "start" }}>
 
-        {/* ── SIDEBAR ── */}
-        <div style={{ background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.15)", borderRadius: 12, overflow: "hidden", position: "sticky", top: 90 }}>
+        {/* ── SIDEBAR — só desktop ── */}
+        <div className="hidden lg:block" style={{ background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.15)", borderRadius: 12, overflow: "hidden", position: "sticky", top: 90 }}>
           {/* avatar */}
           <div style={{ padding: "24px 20px", borderBottom: "1px solid rgba(201,168,76,0.1)", display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
@@ -239,7 +239,7 @@ export default function ContaPage() {
         {/* ── CONTEÚDO ── */}
         <div>
           {/* abas mobile */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 20, overflowX: "auto" }}>
+          <div className="lg:hidden" style={{ display: "flex", gap: 8, marginBottom: 12, overflowX: "auto" }}>
             {(["conta", "pedidos", "desejos", "cartoes"] as Tab[]).map((t) => (
               <button key={t} onClick={() => setTab(t)}
                 style={{
@@ -256,6 +256,24 @@ export default function ContaPage() {
             ))}
           </div>
 
+          {/* atalhos extra mobile — senha / admin / sair (no desktop já estão na sidebar) */}
+          <div className="lg:hidden" style={{ display: "flex", gap: 8, marginBottom: 20, overflowX: "auto" }}>
+            <Link href="/conta/alterar-senha"
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", color: "var(--gray-mid)", fontSize: 12, textDecoration: "none", flexShrink: 0 }}>
+              <Lock size={12} />Alterar Senha
+            </Link>
+            {user.role === "admin" && (
+              <Link href="/admin"
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.3)", background: "rgba(201,168,76,0.08)", color: "var(--gold)", fontSize: 12, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}>
+                ⚙ Painel Admin
+              </Link>
+            )}
+            <button onClick={handleLogout}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1px solid rgba(224,85,85,0.25)", background: "none", color: "#e05555", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
+              <LogOut size={12} />Sair
+            </button>
+          </div>
+
           {/* ── TAB: MINHA CONTA ── */}
           {tab === "conta" && (
             <>
@@ -269,7 +287,7 @@ export default function ContaPage() {
                 </div>
 
                 {editing ? (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
                     <div>
                       <p style={fieldLabel}>Nome</p>
                       <input style={inputStyle} value={editForm.name} onChange={(e) => setEditForm(p => ({ ...p, name: e.target.value }))} />
@@ -285,7 +303,7 @@ export default function ContaPage() {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
                     {[
                       { label: "Nome", value: user.name ?? "" },
                       { label: "E-mail", value: user.email },

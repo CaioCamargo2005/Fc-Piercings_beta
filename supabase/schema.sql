@@ -121,10 +121,13 @@ create policy "Admin gerencia categorias"
 
 -- Dados iniciais das categorias
 insert into public.categories (name, slug, sort_order) values
-  ('Titânio Natural',  'titanio-natural',  1),
-  ('Titânio PVD Gold', 'titanio-pvd-gold', 2),
-  ('Aço Natural',      'aco-natural',      3),
-  ('Aço PVD Gold',     'aco-pvd-gold',     4);
+  ('Titânio Natural',   'titanio-natural',   1),
+  ('Titânio PVD Gold',  'titanio-pvd-gold',  2),
+  ('Titânio PVD Black', 'titanio-pvd-black', 3),
+  ('Aço Natural',       'aco-natural',       4),
+  ('Aço PVD Gold',      'aco-pvd-gold',      5),
+  ('Aço PVD Black',     'aco-pvd-black',     6)
+on conflict (slug) do nothing;
 
 
 -- ────────────────────────────────────────────────────────────────
@@ -334,3 +337,17 @@ alter table public.products
   -- quando a oferta termina (null = sem prazo definido)
 
 -- "is_new" não precisa de coluna de data — calculamos com created_at + 7 dias
+
+-- ================================================================
+-- MIGRAÇÃO: adicionar coluna colors na tabela products
+-- ================================================================
+alter table public.products
+  add column if not exists colors text[];
+
+-- ================================================================
+-- MIGRAÇÃO: adicionar categorias PVD Black
+-- ================================================================
+insert into public.categories (name, slug, sort_order) values
+  ('Titânio PVD Black', 'titanio-pvd-black', 3),
+  ('Aço PVD Black',     'aco-pvd-black',     6)
+on conflict (slug) do nothing;

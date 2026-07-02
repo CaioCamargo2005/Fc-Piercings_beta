@@ -33,6 +33,16 @@ export const navCategories: NavCategory[] = [
     ],
   },
   {
+    label: "Titânio PVD Black",
+    href: "/categorias/titanio-pvd-black",
+    subcategories: [
+      { label: "Argolas",         href: "/categorias/titanio-pvd-black?sub=Argolas"        },
+      { label: "Labret",          href: "/categorias/titanio-pvd-black?sub=Labret"         },
+      { label: "Septo",           href: "/categorias/titanio-pvd-black?sub=Septo"          },
+      { label: "Nostril",         href: "/categorias/titanio-pvd-black?sub=Nostril"        },
+    ],
+  },
+  {
     label: "Aço Natural",
     href: "/categorias/aco-natural",
     subcategories: [
@@ -49,6 +59,15 @@ export const navCategories: NavCategory[] = [
       { label: "Argolas",         href: "/categorias/aco-pvd-gold?sub=Argolas"             },
       { label: "Labret",          href: "/categorias/aco-pvd-gold?sub=Labret"              },
       { label: "Semi Joias",      href: "/categorias/aco-pvd-gold?sub=Semi+Joias"          },
+    ],
+  },
+  {
+    label: "Aço PVD Black",
+    href: "/categorias/aco-pvd-black",
+    subcategories: [
+      { label: "Argolas",         href: "/categorias/aco-pvd-black?sub=Argolas"            },
+      { label: "Labret",          href: "/categorias/aco-pvd-black?sub=Labret"             },
+      { label: "Septo",           href: "/categorias/aco-pvd-black?sub=Septo"              },
     ],
   },
   { label: "Ofertas",      href: "/ofertas"      },

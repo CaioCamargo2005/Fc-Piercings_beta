@@ -17,7 +17,7 @@ type Props = {
 
 export default function InstitucionalLayout({ title, breadcrumb, sections }: Props) {
   return (
-    <div style={{ background: "var(--white-off)", minHeight: "calc(100vh - 120px)", padding: "32px" }}>
+    <div className="px-4 sm:px-8" style={{ background: "var(--white-off)", minHeight: "calc(100vh - 120px)", paddingTop: 32, paddingBottom: 32 }}>
       <div style={{ maxWidth: 860, margin: "0 auto" }}>
 
         {/* breadcrumb */}

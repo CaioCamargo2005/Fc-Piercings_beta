@@ -75,7 +75,7 @@ export default function LancamentosPage() {
 
   return (
     <div style={{ background: "var(--white-off)", minHeight: "calc(100vh - 120px)" }}>
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 32px" }}>
+      <div className="px-4 sm:px-8" style={{ maxWidth: 1400, margin: "0 auto", paddingTop: 20, paddingBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
           <Link href="/" style={{ color: "var(--gold)", fontSize: 13, textDecoration: "none" }}>Início</Link>
           <ChevronRight size={12} style={{ color: "var(--gray-mid)" }} />

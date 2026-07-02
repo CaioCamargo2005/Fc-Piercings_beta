@@ -27,13 +27,15 @@ const SORT_OPTIONS = [
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
-  "titanio-natural":  "Titânio Natural",
-  "titanio-pvd-gold": "Titânio PVD Gold",
-  "aco-natural":      "Aço Natural",
-  "aco-pvd-gold":     "Aço PVD Gold",
-  "ofertas":          "Ofertas da Semana",
-  "lancamentos":      "Lançamentos",
-  "destaques":        "Destaques",
+  "titanio-natural":   "Titânio Natural",
+  "titanio-pvd-gold":  "Titânio PVD Gold",
+  "titanio-pvd-black": "Titânio PVD Black",
+  "aco-natural":       "Aço Natural",
+  "aco-pvd-gold":      "Aço PVD Gold",
+  "aco-pvd-black":     "Aço PVD Black",
+  "ofertas":           "Ofertas da Semana",
+  "lancamentos":       "Lançamentos",
+  "destaques":         "Destaques",
 };
 
 function FilterSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -206,7 +208,7 @@ function CategoriaContent() {
 
   return (
     <div style={{ background: "var(--white-off)", minHeight: "calc(100vh - 120px)" }}>
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 32px" }}>
+      <div className="px-4 sm:px-8" style={{ maxWidth: 1400, margin: "0 auto", paddingTop: 20, paddingBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
           <Link href="/" style={{ color: "var(--gold)", fontSize: 13, textDecoration: "none" }}>Início</Link>
           <ChevronRight size={12} style={{ color: "var(--gray-mid)" }} />
@@ -214,9 +216,9 @@ function CategoriaContent() {
           {subFromUrl && <><ChevronRight size={12} style={{ color: "var(--gray-mid)" }} /><span style={{ color: "var(--gray-mid)", fontSize: 13 }}>{subFromUrl}</span></>}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 24, alignItems: "start" }}>
-          {/* sidebar */}
-          <aside style={{ background: "var(--white)", border: "1px solid rgba(0,0,0,0.07)", borderRadius: 12, padding: "20px 16px", position: "sticky", top: 90 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr]" style={{ gap: 24, alignItems: "start" }}>
+          {/* sidebar — só aparece no desktop, mobile usa o drawer */}
+          <aside className="hidden lg:block" style={{ background: "var(--white)", border: "1px solid rgba(0,0,0,0.07)", borderRadius: 12, padding: "20px 16px", position: "sticky", top: 90 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <p style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: "var(--black)" }}>Filtros</p>
               {hasFilters && <button onClick={clearAll} style={{ background: "none", border: "none", cursor: "pointer", color: "#e05555", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}><X size={12} />Limpar</button>}
@@ -236,7 +238,7 @@ function CategoriaContent() {
                 </p>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button onClick={() => setMobileFilters(true)}
+                <button onClick={() => setMobileFilters(true)} className="lg:hidden"
                   style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.12)", background: "white", fontSize: 13, cursor: "pointer", color: "var(--black)" }}>
                   <SlidersHorizontal size={14} />Filtros
                 </button>

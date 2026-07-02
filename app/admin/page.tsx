@@ -231,6 +231,16 @@ export default function AdminPage() {
     if (!form.price || isNaN(Number(form.price))) { setFormError("Preço inválido."); return; }
     if (!form.category_id) { setFormError("Selecione uma categoria."); return; }
 
+    // ── checa nome duplicado (ignora o próprio produto quando editando) ──
+    const normalizedName = form.name.trim().toLowerCase();
+    const duplicate = products.find(p =>
+      p.name.trim().toLowerCase() === normalizedName && p.id !== editing?.id
+    );
+    if (duplicate) {
+      setFormError(`Já existe um produto chamado "${duplicate.name}". Escolha um nome diferente.`);
+      return;
+    }
+
     setSaving(true); setFormError("");
 
     try {
@@ -331,38 +341,43 @@ export default function AdminPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--black)", display: "flex" }}>
+    <div className="flex flex-col lg:flex-row" style={{ minHeight: "100vh", background: "var(--black)" }}>
 
-      {/* ── SIDEBAR ── */}
-      <div style={{ width: 220, flexShrink: 0, background: "var(--black-soft)", borderRight: "1px solid rgba(201,168,76,0.12)", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh" }}>
-        <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(201,168,76,0.1)" }}>
+      {/* ── SIDEBAR (desktop) / TOPBAR (mobile) ── */}
+      <div className="w-full lg:w-[220px] flex-row lg:flex-col lg:sticky lg:top-0 lg:h-screen"
+        style={{ flexShrink: 0, background: "var(--black-soft)", borderBottom: "1px solid rgba(201,168,76,0.12)", display: "flex" }}>
+        <div className="lg:border-b" style={{ padding: "14px 16px", borderBottom: "1px solid rgba(201,168,76,0.1)", flexShrink: 0 }}>
           <p style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, background: "linear-gradient(135deg,#8B6914,#C9A84C,#F5E0A0,#C9A84C)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Painel Admin</p>
-          <p style={{ color: "var(--gray-mid)", fontSize: 11, marginTop: 2 }}>{user?.name ?? user?.email}</p>
+          <p className="hidden lg:block" style={{ color: "var(--gray-mid)", fontSize: 11, marginTop: 2 }}>{user?.name ?? user?.email}</p>
         </div>
-        <nav style={{ flex: 1, padding: "12px 8px" }}>
+        <nav className="flex lg:flex-col" style={{ flex: 1, padding: "8px", overflowX: "auto" }}>
           {([
             { id: "produtos", icon: <Package size={15} />,       label: "Produtos" },
             { id: "pedidos",  icon: <LayoutDashboard size={15} />, label: "Pedidos"  },
           ] as { id: AdminTab; icon: React.ReactNode; label: string }[]).map(item => (
             <button key={item.id} onClick={() => setTab(item.id)}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: "none", cursor: "pointer", borderRadius: 8, background: tab === item.id ? "rgba(201,168,76,0.1)" : "transparent", color: tab === item.id ? "var(--gold)" : "var(--gray-light)", fontSize: 13, marginBottom: 2 }}>
+              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "none", cursor: "pointer", borderRadius: 8, background: tab === item.id ? "rgba(201,168,76,0.1)" : "transparent", color: tab === item.id ? "var(--gold)" : "var(--gray-light)", fontSize: 13, marginRight: 4 }}>
               {item.icon}{item.label}
             </button>
           ))}
         </nav>
-        <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(201,168,76,0.1)" }}>
+        <div className="hidden lg:block" style={{ padding: "12px 8px", borderTop: "1px solid rgba(201,168,76,0.1)" }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", color: "var(--gray-mid)", fontSize: 13, textDecoration: "none", borderRadius: 8 }}>← Ver loja</a>
           <button onClick={logout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", border: "none", background: "transparent", color: "#e05555", fontSize: 13, cursor: "pointer", borderRadius: 8 }}>
             <LogOut size={15} />Sair
           </button>
         </div>
+        {/* Sair compacto no mobile */}
+        <button onClick={logout} className="lg:hidden" style={{ flexShrink: 0, display: "flex", alignItems: "center", padding: "0 14px", border: "none", background: "transparent", color: "#e05555", cursor: "pointer" }}>
+          <LogOut size={16} />
+        </button>
       </div>
 
       {/* ── CONTEÚDO ── */}
-      <div style={{ flex: 1, padding: 32, overflowY: "auto" }}>
+      <div className="px-4 sm:px-6 lg:px-8" style={{ flex: 1, paddingTop: 24, paddingBottom: 24, overflowY: "auto", overflowX: "hidden" }}>
         {tab === "produtos" && (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+            <div className="flex-wrap gap-3" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <div>
                 <h1 style={{ color: "var(--white)", fontSize: 20, fontWeight: 700 }}>Produtos</h1>
                 <p style={{ color: "var(--gray-mid)", fontSize: 13, marginTop: 2 }}>{products.length} cadastrados</p>
@@ -385,72 +400,135 @@ export default function AdminPage() {
                 <Loader2 size={32} style={{ color: "var(--gold)", animation: "spin 0.8s linear infinite" }} />
               </div>
             ) : (
-              <div style={{ background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.12)", borderRadius: 12, overflow: "hidden" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px 110px 100px", padding: "10px 16px", borderBottom: "1px solid rgba(201,168,76,0.1)" }}>
-                  {["Produto","Categoria","Preço","Disponível","Status","Ações"].map(h => (
-                    <p key={h} style={{ color: "var(--gray-mid)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</p>
+              <>
+                {/* ── TABELA (desktop) ── */}
+                <div className="hidden md:block" style={{ background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.12)", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px 110px 100px", padding: "10px 16px", borderBottom: "1px solid rgba(201,168,76,0.1)" }}>
+                    {["Produto","Categoria","Preço","Disponível","Status","Ações"].map(h => (
+                      <p key={h} style={{ color: "var(--gray-mid)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</p>
+                    ))}
+                  </div>
+                  {filtered.length === 0 && (
+                    <p style={{ padding: 24, color: "var(--gray-mid)", fontSize: 14, textAlign: "center" }}>
+                      {products.length === 0 ? "Nenhum produto cadastrado ainda." : "Nenhum resultado."}
+                    </p>
+                  )}
+                  {filtered.map((p, i) => (
+                    <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px 110px 100px", alignItems: "center", padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid rgba(201,168,76,0.06)" : "none", opacity: !p.active ? 0.5 : 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 6, flexShrink: 0, background: "var(--black)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                          {p.product_images?.[0]
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={p.product_images.sort((a,b) => a.sort_order - b.sort_order)[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            : <span style={{ fontSize: 20 }}>💍</span>
+                          }
+                        </div>
+                        <div>
+                          <p style={{ color: "var(--white)", fontSize: 13, fontWeight: 500 }}>{p.name}</p>
+                          <p style={{ color: "var(--gray-mid)", fontSize: 11 }}>{p.subcategory}</p>
+                        </div>
+                      </div>
+                      <p style={{ color: "var(--gray-light)", fontSize: 13 }}>{p.categories?.name}</p>
+                      <div>
+                        <p style={{ color: "var(--gold)", fontSize: 13, fontWeight: 600 }}>R$ {p.price.toFixed(2).replace(".",",")}</p>
+                        {p.original_price && p.original_price > p.price && <p style={{ color: "var(--gray-mid)", fontSize: 11, textDecoration: "line-through" }}>R$ {p.original_price.toFixed(2).replace(".",",")}</p>}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4, background: p.stock > 0 ? "rgba(76,175,80,0.15)" : "rgba(224,85,85,0.1)", color: p.stock > 0 ? "#4CAF50" : "#e05555" }}>
+                        {p.stock > 0 ? "Disponível" : "Esgotado"}
+                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: p.active ? "rgba(76,175,80,0.15)" : "rgba(224,85,85,0.1)", color: p.active ? "#4CAF50" : "#e05555" }}>
+                          {p.active ? "Ativo" : "Inativo"}
+                        </span>
+                        <div style={{ display: "flex", gap: 3 }}>
+                          {p.is_new    && <span style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "rgba(201,168,76,0.15)", color: "var(--gold)", fontWeight: 700 }}>NOVO</span>}
+                          {p.on_sale   && (
+                            <span style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "rgba(224,85,85,0.1)", color: "#e05555", fontWeight: 700 }}>
+                              OFERTA{p.sale_ends_at ? ` · ${Math.max(0, Math.ceil((new Date(p.sale_ends_at).getTime() - Date.now()) / 86400000))}d` : ""}
+                            </span>
+                          )}
+                          {p.featured  && <span style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "rgba(91,155,213,0.1)", color: "#5B9BD5", fontWeight: 700 }}>DEST.</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button onClick={() => toggleActive(p)} title={p.active ? "Desativar" : "Ativar"}
+                          style={{ padding: 7, border: "1px solid rgba(201,168,76,0.2)", borderRadius: 6, background: "none", cursor: "pointer", color: "var(--gray-mid)" }}>
+                          {p.active ? <EyeOff size={13} /> : <Eye size={13} />}
+                        </button>
+                        <button onClick={() => openEdit(p)} title="Editar"
+                          style={{ padding: 7, border: "1px solid rgba(201,168,76,0.2)", borderRadius: 6, background: "none", cursor: "pointer", color: "var(--gold)" }}>
+                          <Edit2 size={13} />
+                        </button>
+                        <button onClick={() => deleteProduct(p.id)} title="Remover"
+                          style={{ padding: 7, border: "1px solid rgba(224,85,85,0.2)", borderRadius: 6, background: "none", cursor: "pointer", color: "#e05555" }}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
-                {filtered.length === 0 && (
-                  <p style={{ padding: 24, color: "var(--gray-mid)", fontSize: 14, textAlign: "center" }}>
-                    {products.length === 0 ? "Nenhum produto cadastrado ainda." : "Nenhum resultado."}
-                  </p>
-                )}
-                {filtered.map((p, i) => (
-                  <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px 110px 100px", alignItems: "center", padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid rgba(201,168,76,0.06)" : "none", opacity: !p.active ? 0.5 : 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      {/* miniatura */}
-                      <div style={{ width: 40, height: 40, borderRadius: 6, flexShrink: 0, background: "var(--black)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                        {p.product_images?.[0]
-                          // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={p.product_images.sort((a,b) => a.sort_order - b.sort_order)[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                          : <span style={{ fontSize: 20 }}>💍</span>
-                        }
+
+                {/* ── CARDS (mobile) ── */}
+                <div className="md:hidden" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {filtered.length === 0 && (
+                    <p style={{ padding: 24, color: "var(--gray-mid)", fontSize: 14, textAlign: "center", background: "var(--black-soft)", borderRadius: 12 }}>
+                      {products.length === 0 ? "Nenhum produto cadastrado ainda." : "Nenhum resultado."}
+                    </p>
+                  )}
+                  {filtered.map(p => (
+                    <div key={p.id} style={{ background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.12)", borderRadius: 12, padding: 14, opacity: !p.active ? 0.5 : 1 }}>
+                      <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                        <div style={{ width: 52, height: 52, borderRadius: 8, flexShrink: 0, background: "var(--black)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                          {p.product_images?.[0]
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={p.product_images.sort((a,b) => a.sort_order - b.sort_order)[0].url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            : <span style={{ fontSize: 22 }}>💍</span>
+                          }
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ color: "var(--white)", fontSize: 14, fontWeight: 600 }}>{p.name}</p>
+                          <p style={{ color: "var(--gray-mid)", fontSize: 12 }}>{p.categories?.name}{p.subcategory ? ` · ${p.subcategory}` : ""}</p>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
+                            <p style={{ color: "var(--gold)", fontSize: 14, fontWeight: 700 }}>R$ {p.price.toFixed(2).replace(".",",")}</p>
+                            {p.original_price && p.original_price > p.price && <p style={{ color: "var(--gray-mid)", fontSize: 11, textDecoration: "line-through" }}>R$ {p.original_price.toFixed(2).replace(".",",")}</p>}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p style={{ color: "var(--white)", fontSize: 13, fontWeight: 500 }}>{p.name}</p>
-                        <p style={{ color: "var(--gray-mid)", fontSize: 11 }}>{p.subcategory}</p>
-                      </div>
-                    </div>
-                    <p style={{ color: "var(--gray-light)", fontSize: 13 }}>{p.categories?.name}</p>
-                    <div>
-                      <p style={{ color: "var(--gold)", fontSize: 13, fontWeight: 600 }}>R$ {p.price.toFixed(2).replace(".",",")}</p>
-                      {p.original_price && <p style={{ color: "var(--gray-mid)", fontSize: 11, textDecoration: "line-through" }}>R$ {p.original_price.toFixed(2).replace(".",",")}</p>}
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4, background: p.stock > 0 ? "rgba(76,175,80,0.15)" : "rgba(224,85,85,0.1)", color: p.stock > 0 ? "#4CAF50" : "#e05555" }}>
-                      {p.stock > 0 ? "Disponível" : "Esgotado"}
-                    </span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: p.active ? "rgba(76,175,80,0.15)" : "rgba(224,85,85,0.1)", color: p.active ? "#4CAF50" : "#e05555" }}>
-                        {p.active ? "Ativo" : "Inativo"}
-                      </span>
-                      <div style={{ display: "flex", gap: 3 }}>
-                        {p.is_new    && <span style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "rgba(201,168,76,0.15)", color: "var(--gold)", fontWeight: 700 }}>NOVO</span>}
-                        {p.on_sale   && (
-                          <span style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "rgba(224,85,85,0.1)", color: "#e05555", fontWeight: 700 }}>
+
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: p.stock > 0 ? "rgba(76,175,80,0.15)" : "rgba(224,85,85,0.1)", color: p.stock > 0 ? "#4CAF50" : "#e05555" }}>
+                          {p.stock > 0 ? "Disponível" : "Esgotado"}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: p.active ? "rgba(76,175,80,0.15)" : "rgba(224,85,85,0.1)", color: p.active ? "#4CAF50" : "#e05555" }}>
+                          {p.active ? "Ativo" : "Inativo"}
+                        </span>
+                        {p.is_new  && <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "rgba(201,168,76,0.15)", color: "var(--gold)", fontWeight: 700 }}>NOVO</span>}
+                        {p.on_sale && (
+                          <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "rgba(224,85,85,0.1)", color: "#e05555", fontWeight: 700 }}>
                             OFERTA{p.sale_ends_at ? ` · ${Math.max(0, Math.ceil((new Date(p.sale_ends_at).getTime() - Date.now()) / 86400000))}d` : ""}
                           </span>
                         )}
-                        {p.featured  && <span style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "rgba(91,155,213,0.1)", color: "#5B9BD5", fontWeight: 700 }}>DEST.</span>}
+                        {p.featured && <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "rgba(91,155,213,0.1)", color: "#5B9BD5", fontWeight: 700 }}>DEST.</span>}
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => toggleActive(p)}
+                          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 8, background: "none", cursor: "pointer", color: "var(--gray-mid)", fontSize: 12 }}>
+                          {p.active ? <EyeOff size={13} /> : <Eye size={13} />} {p.active ? "Desativar" : "Ativar"}
+                        </button>
+                        <button onClick={() => openEdit(p)}
+                          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 8, background: "none", cursor: "pointer", color: "var(--gold)", fontSize: 12 }}>
+                          <Edit2 size={13} /> Editar
+                        </button>
+                        <button onClick={() => deleteProduct(p.id)}
+                          style={{ padding: "8px 12px", border: "1px solid rgba(224,85,85,0.2)", borderRadius: 8, background: "none", cursor: "pointer", color: "#e05555" }}>
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <button onClick={() => toggleActive(p)} title={p.active ? "Desativar" : "Ativar"}
-                        style={{ padding: 7, border: "1px solid rgba(201,168,76,0.2)", borderRadius: 6, background: "none", cursor: "pointer", color: "var(--gray-mid)" }}>
-                        {p.active ? <EyeOff size={13} /> : <Eye size={13} />}
-                      </button>
-                      <button onClick={() => openEdit(p)} title="Editar"
-                        style={{ padding: 7, border: "1px solid rgba(201,168,76,0.2)", borderRadius: 6, background: "none", cursor: "pointer", color: "var(--gold)" }}>
-                        <Edit2 size={13} />
-                      </button>
-                      <button onClick={() => deleteProduct(p.id)} title="Remover"
-                        style={{ padding: 7, border: "1px solid rgba(224,85,85,0.2)", borderRadius: 6, background: "none", cursor: "pointer", color: "#e05555" }}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
           </>
         )}
@@ -464,9 +542,8 @@ export default function AdminPage() {
 
       {/* ── MODAL ── */}
       {modalOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 16px", overflowY: "auto" }}
-          onClick={e => { if (e.target === e.currentTarget) setModalOpen(false); }}>
-          <div style={{ background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 16, width: "100%", maxWidth: 640, padding: 32, boxShadow: "0 24px 64px rgba(0,0,0,0.8)" }}>
+        <div className="px-2 sm:px-4" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 24, paddingBottom: 24, overflowY: "auto" }}>
+          <div className="p-5 sm:p-8" style={{ background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 16, width: "100%", maxWidth: 640, boxShadow: "0 24px 64px rgba(0,0,0,0.8)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h2 style={{ color: "var(--white)", fontSize: 18, fontWeight: 700 }}>
                 {editing ? "Editar produto" : "Novo produto"}
@@ -479,10 +556,17 @@ export default function AdminPage() {
               <div>
                 <label style={labelSt}>Nome *</label>
                 <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Argola Titânio Natural" style={inputSt} />
+                {form.name.trim() && products.some(p =>
+                  p.name.trim().toLowerCase() === form.name.trim().toLowerCase() && p.id !== editing?.id
+                ) && (
+                  <p style={{ fontSize: 11, color: "#e05555", marginTop: 4 }}>
+                    ⚠ Já existe um produto com esse nome
+                  </p>
+                )}
               </div>
 
               {/* categoria + subcategoria */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
                 <div>
                   <label style={labelSt}>Categoria *</label>
                   <select value={form.category_id} onChange={e => setForm(p => ({ ...p, category_id: e.target.value }))}
@@ -526,7 +610,7 @@ export default function AdminPage() {
               </div>
 
               {/* preço + original */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
                 <div>
                   <label style={labelSt}>Preço (R$) *</label>
                   <input type="number" step="0.01" min="0" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} style={inputSt} />
@@ -771,7 +855,17 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {formError && <p style={{ color: "#e05555", fontSize: 13, background: "rgba(224,85,85,0.1)", padding: "10px 14px", borderRadius: 8 }}>{formError}</p>}
+              {formError && (
+                <div style={{
+                  display: "flex", alignItems: "flex-start", gap: 10,
+                  color: "#e05555", fontSize: 13, fontWeight: 500,
+                  background: "rgba(224,85,85,0.12)", border: "1px solid rgba(224,85,85,0.3)",
+                  padding: "12px 16px", borderRadius: 10,
+                }}>
+                  <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1 }}>⚠️</span>
+                  <span>{formError}</span>
+                </div>
+              )}
 
               {/* botões */}
               <div style={{ display: "flex", gap: 10, paddingTop: 8 }}>

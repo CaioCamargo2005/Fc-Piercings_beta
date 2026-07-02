@@ -24,10 +24,11 @@ export default function Footer() {
       }} />
 
       {/* ── NEWSLETTER — texto + campo na mesma linha, tudo centralizado ── */}
-      <div style={{
+      <div className="px-4 sm:px-8" style={{
         background: "var(--black-mid)",
         borderBottom: "1px solid rgba(201,168,76,0.1)",
-        padding: "24px 32px",
+        paddingTop: 24,
+        paddingBottom: 24,
       }}>
         <div style={{
           display: "flex",
@@ -84,11 +85,10 @@ export default function Footer() {
       </div>
 
       {/* ── COLUNAS com padding lateral explícito ── */}
-      <div style={{
-        padding: "48px 32px",
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
-        gap: 32,
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 px-4 sm:px-8" style={{
+        paddingTop: 40,
+        paddingBottom: 40,
+        gap: 28,
       }}>
 
         {/* marca */}
@@ -182,9 +182,10 @@ export default function Footer() {
       </div>
 
       {/* rodapé */}
-      <div style={{
+      <div className="px-4 sm:px-8" style={{
         borderTop: "1px solid rgba(201,168,76,0.1)",
-        padding: "16px 32px",
+        paddingTop: 16,
+        paddingBottom: 16,
         textAlign: "center",
         color: "var(--gray-dark)",
         fontSize: 12,

@@ -12,7 +12,7 @@ type Props = {
 
 export default function ProductCard({ product, onAddToCart }: Props) {
   const { addItem, isInCart } = useCart();
-  const discount = product.originalPrice
+  const discount = (product.originalPrice && product.originalPrice > product.price)
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : null;
 
@@ -38,7 +38,7 @@ export default function ProductCard({ product, onAddToCart }: Props) {
     >
       {/* badges */}
       <div style={{ position: "absolute", top: 10, left: 10, zIndex: 2, display: "flex", flexDirection: "column", gap: 4 }}>
-        {discount && (
+        {discount !== null && discount > 0 && (
           <span style={{ background: "#e05555", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 7px", borderRadius: 4 }}>
             {discount}% OFF
           </span>
@@ -116,7 +116,7 @@ export default function ProductCard({ product, onAddToCart }: Props) {
 
         {/* preços */}
         <div style={{ marginBottom: 10 }}>
-          {product.originalPrice && (
+          {product.originalPrice && product.originalPrice > product.price && (
             <p style={{ color: "var(--gray-mid)", fontSize: 11, textDecoration: "line-through" }}>
               R$ {product.originalPrice.toFixed(2).replace(".", ",")}
             </p>

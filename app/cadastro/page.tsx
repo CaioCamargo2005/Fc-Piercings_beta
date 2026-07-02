@@ -315,7 +315,7 @@ export default function CadastroPage() {
             </div>
 
             {/* e-mail + telefone lado a lado */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={labelStyle}>E-mail</label>
                 <div style={{ position: "relative" }}>
@@ -350,7 +350,7 @@ export default function CadastroPage() {
             </div>
 
             {/* senha + confirmar lado a lado */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 8 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 8 }}>
               <div>
                 <label style={labelStyle}>Senha</label>
                 <div style={{ position: "relative" }}>

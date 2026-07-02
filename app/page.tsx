@@ -4,8 +4,19 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import ProductCard from "./components/ui/ProductCard";
+import ProductSlider from "./components/ui/ProductSlider";
 import { createClient } from "@/lib/supabase/client";
 import { Product } from "@/lib/products-mock";
+
+/* embaralha um array sem mutar o original (Fisher-Yates) */
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
 type DBProduct = {
   id: string; name: string; slug: string;
@@ -80,6 +91,8 @@ export default function Home() {
   const [featured,     setFeatured]     = useState<Product[]>([]);
   const [onSale,       setOnSale]       = useState<Product[]>([]);
   const [allProds,     setAllProds]     = useState<Product[]>([]);
+  const [suggestions,  setSuggestions]  = useState<Product[]>([]);
+  const [categorySamples, setCategorySamples] = useState<{ name: string; slug: string; products: Product[] }[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [hasProducts,  setHasProducts]  = useState(true);
 
@@ -117,6 +130,29 @@ export default function Home() {
           setNewProducts(stillNew.slice(0, 8));
           setFeatured(all.filter(p => p.featured).slice(0, 8));
           setOnSale(stillOnSale.slice(0, 8));
+
+          // ── Sugestões para você — aleatório a cada carregamento da página ──
+          setSuggestions(shuffle(all).slice(0, 10));
+
+          // ── Sample de cada categoria — 7-8 produtos aleatórios por categoria ──
+          const byCategory = new Map<string, Product[]>();
+          all.forEach(p => {
+            if (!p.category) return;
+            if (!byCategory.has(p.category)) byCategory.set(p.category, []);
+            byCategory.get(p.category)!.push(p);
+          });
+
+          const samples = [...byCategory.entries()]
+            .filter(([, prods]) => prods.length > 0)
+            .map(([name, prods]) => ({
+              name,
+              slug: name.toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .replace(/\s+/g, "-"),
+              products: shuffle(prods).slice(0, 8),
+            }));
+
+          setCategorySamples(shuffle(samples));
         }
       } catch (e) {
         console.error("Erro ao carregar produtos:", e);
@@ -131,9 +167,9 @@ export default function Home() {
   return (
     <div style={{ background: "var(--white)" }}>
       {/* HERO */}
-      <div style={{ background: "var(--black-soft)", borderBottom: "2px solid rgba(201,168,76,0.2)", padding: "64px 32px", textAlign: "center" }}>
+      <div className="px-4 sm:px-8" style={{ background: "var(--black-soft)", borderBottom: "2px solid rgba(201,168,76,0.2)", paddingTop: 48, paddingBottom: 48, textAlign: "center" }}>
         <p style={{ color: "var(--gray-mid)", fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12 }}>Bem-vinda à</p>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 42, fontWeight: 900, lineHeight: 1.1, background: "linear-gradient(135deg,#8B6914,#C9A84C,#F5E0A0,#C9A84C,#8B6914)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 16 }}>
+        <h1 className="text-[32px] sm:text-[42px]" style={{ fontFamily: "var(--font-display)", fontWeight: 900, lineHeight: 1.1, background: "linear-gradient(135deg,#8B6914,#C9A84C,#F5E0A0,#C9A84C,#8B6914)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 16 }}>
           FC Piercing<br />e Semi Joias
         </h1>
         <p style={{ color: "var(--gray-mid)", fontSize: 15, marginBottom: 28 }}>
@@ -149,7 +185,7 @@ export default function Home() {
             💬 Falar no WhatsApp
           </a>
         </div>
-        <div style={{ display: "flex", gap: 32, justifyContent: "center", marginTop: 40, flexWrap: "wrap" }}>
+        <div className="gap-3 sm:gap-8" style={{ display: "flex", justifyContent: "center", marginTop: 32, flexWrap: "wrap" }}>
           {["🚚 Entrega para todo Brasil","✅ Titânio certificado ASTM F136","🔒 Compra 100% segura","⭐ Garantia de 1 ano"].map(b => (
             <span key={b} style={{ color: "var(--gray-mid)", fontSize: 13 }}>{b}</span>
           ))}
@@ -157,7 +193,7 @@ export default function Home() {
       </div>
 
       {/* SEÇÕES */}
-      <div style={{ padding: "48px 32px", maxWidth: 1400, margin: "0 auto" }}>
+      <div className="px-4 sm:px-8" style={{ paddingTop: 40, paddingBottom: 40, maxWidth: 1400, margin: "0 auto" }}>
         {loading ? (
           <>
             <div style={{ marginBottom: 56 }}>
@@ -174,29 +210,37 @@ export default function Home() {
           </div>
         ) : (
           <>
+            {/* ── SUGESTÕES PARA VOCÊ — aleatório a cada visita ── */}
+            {suggestions.length > 0 && (
+              <section style={{ marginBottom: 56 }}>
+                <SectionHeader title="Sugestões para você" href="/categorias/titanio-natural" />
+                <ProductSlider products={suggestions} seeMoreHref="/categorias/titanio-natural" />
+              </section>
+            )}
+
             {newProducts.length > 0 && (
               <section style={{ marginBottom: 56 }}>
                 <SectionHeader title="Lançamentos" href="/lancamentos" />
-                <ProductGrid products={newProducts} />
+                <ProductSlider products={newProducts} seeMoreHref="/lancamentos" />
               </section>
             )}
 
             {featured.length > 0 && (
               <section style={{ marginBottom: 56 }}>
                 <SectionHeader title="Destaques" href="/categorias/titanio-natural" />
-                <ProductGrid products={featured} />
+                <ProductSlider products={featured} seeMoreHref="/categorias/titanio-natural" />
               </section>
             )}
 
             {/* banners de categoria */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 56 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 56 }}>
               {[
                 { label: "Joias em", bold: "Titânio", href: "/categorias/titanio-natural", emoji: "🥈" },
                 { label: "Joias em", bold: "Aço PVD Gold", href: "/categorias/aco-pvd-gold", emoji: "✨" },
               ].map(b => (
                 <Link key={b.href} href={b.href} style={{
                   background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 12,
-                  padding: "32px 28px", textDecoration: "none",
+                  padding: "28px 24px", textDecoration: "none",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   transition: "border-color 0.2s",
                 }}
@@ -205,10 +249,10 @@ export default function Home() {
                 >
                   <div>
                     <p style={{ color: "var(--gray-light)", fontSize: 14, marginBottom: 4 }}>{b.label}</p>
-                    <p style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, background: "linear-gradient(135deg,#8B6914,#C9A84C,#F5E0A0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{b.bold}</p>
+                    <p style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, background: "linear-gradient(135deg,#8B6914,#C9A84C,#F5E0A0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{b.bold}</p>
                     <p style={{ color: "var(--gold)", fontSize: 13, marginTop: 10 }}>Confira →</p>
                   </div>
-                  <span style={{ fontSize: 48, opacity: 0.5 }}>{b.emoji}</span>
+                  <span style={{ fontSize: 40, opacity: 0.5, flexShrink: 0, marginLeft: 12 }}>{b.emoji}</span>
                 </Link>
               ))}
             </div>
@@ -216,12 +260,20 @@ export default function Home() {
             {onSale.length > 0 && (
               <section style={{ marginBottom: 56 }}>
                 <SectionHeader title="Ofertas da Semana" href="/ofertas" />
-                <ProductGrid products={onSale} />
+                <ProductSlider products={onSale} seeMoreHref="/ofertas" />
               </section>
             )}
 
+            {/* ── UM SLIDER POR CATEGORIA — amostra aleatória de cada uma ── */}
+            {categorySamples.map(cat => (
+              <section key={cat.slug} style={{ marginBottom: 56 }}>
+                <SectionHeader title={cat.name} href={`/categorias/${cat.slug}`} />
+                <ProductSlider products={cat.products} seeMoreHref={`/categorias/${cat.slug}`} />
+              </section>
+            ))}
+
             {/* Se não tiver nenhuma flag marcada, mostra todos */}
-            {newProducts.length === 0 && featured.length === 0 && onSale.length === 0 && allProds.length > 0 && (
+            {newProducts.length === 0 && featured.length === 0 && onSale.length === 0 && categorySamples.length === 0 && allProds.length > 0 && (
               <section style={{ marginBottom: 56 }}>
                 <SectionHeader title="Produtos" href="/categorias/titanio-natural" />
                 <ProductGrid products={allProds} />

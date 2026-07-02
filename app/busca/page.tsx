@@ -16,7 +16,7 @@ function BuscaContent() {
 
   return (
     <div style={{ background: "var(--white-off)", minHeight: "calc(100vh - 120px)" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 32px" }}>
+      <div className="px-4 sm:px-8" style={{ maxWidth: 1100, margin: "0 auto", paddingTop: 24, paddingBottom: 24 }}>
 
         {/* breadcrumb */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 24 }}>

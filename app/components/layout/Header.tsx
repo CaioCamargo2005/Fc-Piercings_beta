@@ -48,12 +48,14 @@ export default function Header() {
         style={{ background: "var(--black-soft)", borderBottom: "1px solid rgba(201,168,76,0.2)" }}
         className="sticky top-0 z-50 w-full"
       >
-        <div style={{ display: "flex", alignItems: "center", height: 72, padding: "0 32px", gap: 24 }}>
+        <div className="px-3 sm:px-6 lg:px-8 gap-2 sm:gap-6" style={{ display: "flex", alignItems: "center", height: 72 }}>
 
           {/* LOGO */}
-          <Link href="/" className="flex-shrink-0 flex items-center gap-3 group">
-            <Image src="/logo.png" alt="FC Piercing e Semi Joias" width={52} height={52}
-              style={{ objectFit: "contain" }} priority />
+          <Link href="/" className="flex-shrink-0 flex items-center gap-2 sm:gap-3 group">
+            <div className="relative w-10 h-10 sm:w-[52px] sm:h-[52px]">
+              <Image src="/logo.png" alt="FC Piercing e Semi Joias" fill
+                style={{ objectFit: "contain" }} priority sizes="52px" />
+            </div>
             <div className="hidden sm:block">
               <p style={{
                 fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, lineHeight: 1.1,
@@ -97,8 +99,8 @@ export default function Header() {
               </button>
 
               {userMenuOpen && (
-                <div className="animate-fadeDown" style={{
-                  position: "absolute", right: 0, top: "calc(100% + 8px)", width: 224,
+                <div className="animate-fadeDown w-[calc(100vw-24px)] sm:w-[224px] max-w-[224px]" style={{
+                  position: "absolute", right: 0, top: "calc(100% + 8px)",
                   background: "var(--black-card)", border: "1px solid rgba(201,168,76,0.2)",
                   borderRadius: 12, overflow: "hidden", boxShadow: "0 16px 40px rgba(0,0,0,0.6)",
                 }}>
@@ -181,8 +183,8 @@ export default function Header() {
 
               {/* ── MINI-CARRINHO DROPDOWN ── */}
               {cartOpen && (
-                <div className="animate-fadeDown" style={{
-                  position: "absolute", right: 0, top: "calc(100% + 8px)", width: 360,
+                <div className="animate-fadeDown w-[calc(100vw-24px)] sm:w-[360px] max-w-[360px]" style={{
+                  position: "absolute", right: 0, top: "calc(100% + 8px)",
                   background: "var(--black-card)", border: "1px solid rgba(201,168,76,0.2)",
                   borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.7)",
                 }}>
@@ -325,8 +327,8 @@ export default function Header() {
 
         {/* busca mobile expandida */}
         {searchOpen && (
-          <div className="md:hidden animate-fadeDown"
-            style={{ padding: "0 32px 12px", background: "var(--black-soft)" }}>
+          <div className="md:hidden animate-fadeDown px-3 sm:px-6"
+            style={{ paddingBottom: 12, background: "var(--black-soft)" }}>
             <SearchBar autoFocus onClose={() => setSearchOpen(false)} />
           </div>
         )}
