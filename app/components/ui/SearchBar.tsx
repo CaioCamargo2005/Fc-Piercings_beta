@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, X, Tag, LayoutGrid, ShoppingBag } from "lucide-react";
-import { getSuggestions, SearchSuggestion } from "@/lib/search";
+import { getSuggestions, preloadSearchIndex, SearchSuggestion } from "@/lib/search";
 
 type Props = {
   placeholder?: string;
@@ -49,14 +49,21 @@ export default function SearchBar({ placeholder = "Buscar produtos...", autoFocu
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  function handleChange(value: string) {
+  // guarda contra respostas fora de ordem (o usuário digita mais
+  // rápido que a busca responde — só a última requisição vale)
+  const reqId = useRef(0);
+
+  async function handleChange(value: string) {
     setQuery(value);
     setHighlighted(-1);
     if (value.length >= 2) {
-      const sugs = getSuggestions(value);
+      const id = ++reqId.current;
+      const sugs = await getSuggestions(value);
+      if (id !== reqId.current) return; // resposta antiga, descarta
       setSuggestions(sugs);
       setOpen(sugs.length > 0);
     } else {
+      reqId.current++;
       setSuggestions([]);
       setOpen(false);
     }
@@ -117,7 +124,7 @@ export default function SearchBar({ placeholder = "Buscar produtos...", autoFocu
           value={query}
           onChange={e => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
+          onFocus={() => { preloadSearchIndex(); if (suggestions.length > 0) setOpen(true); }}
           placeholder={placeholder}
           autoComplete="off"
           style={{

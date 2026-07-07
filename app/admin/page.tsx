@@ -5,6 +5,7 @@ import Fuse from "fuse.js";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-mock";
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import {
   Plus, Edit2, Trash2, Eye, EyeOff, Package,
   LayoutDashboard, LogOut, Search, X, Check, ImagePlus, Loader2,
@@ -73,6 +74,8 @@ export default function AdminPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [dbLoading,  setDbLoading]  = useState(true);
   const [search,     setSearch]     = useState("");
+  const [statusFilter, setStatusFilter] = useState<"todos" | "ativos" | "inativos">("todos");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [modalOpen,  setModalOpen]  = useState(false);
   const [editing,    setEditing]    = useState<Product | null>(null);
   const [form,       setForm]       = useState<ProductForm>(EMPTY_FORM);
@@ -120,12 +123,22 @@ export default function AdminPage() {
   const loadProducts = useCallback(async () => {
     setDbLoading(true);
     const supabase = createClient();
-    const { data } = await supabase
-      .from("products")
-      .select("*, categories(name, slug), product_images(id, url, sort_order)")
-      .order("created_at", { ascending: false });
-    setProducts((data as Product[]) ?? []);
-    setDbLoading(false);
+    try {
+      // busca em lotes de 1.000 — sem isso o admin só mostra os primeiros 1.000
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from("products")
+          .select("*, categories(name, slug), product_images(id, url, sort_order)")
+          .order("created_at", { ascending: false })
+          .range(from, to)
+      );
+      setProducts((data as Product[]) ?? []);
+    } catch (e) {
+      console.error("loadProducts:", e);
+      setProducts([]);
+    } finally {
+      setDbLoading(false);
+    }
   }, []);
 
   const loadCategories = useCallback(async () => {
@@ -322,12 +335,55 @@ export default function AdminPage() {
     // imagens são deletadas em cascata pelo banco (on delete cascade)
     await supabase.from("products").delete().eq("id", id);
     setProducts(prev => prev.filter(p => p.id !== id));
+    setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
   }
 
-  const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.categories?.name ?? "").toLowerCase().includes(search.toLowerCase())
-  );
+  /* ── seleção ── */
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(p => p.id)));
+    }
+  }
+
+  /* ── bulk actions ── */
+  async function bulkSetActive(active: boolean) {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    const supabase = createClient();
+    await supabase.from("products").update({ active } as never).in("id", ids);
+    setProducts(prev => prev.map(p => ids.includes(p.id) ? { ...p, active } : p));
+    setSelectedIds(new Set());
+  }
+
+  async function bulkDelete() {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Remover ${selectedIds.size} produto(s) permanentemente? Essa ação não pode ser desfeita.`)) return;
+    const ids = [...selectedIds];
+    const supabase = createClient();
+    await supabase.from("products").delete().in("id", ids);
+    setProducts(prev => prev.filter(p => !ids.includes(p.id)));
+    setSelectedIds(new Set());
+  }
+
+  const filtered = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.categories?.name ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchesStatus =
+      statusFilter === "todos" ? true :
+      statusFilter === "ativos" ? p.active :
+      !p.active;
+    return matchesSearch && matchesStatus;
+  });
 
   /* ── estilos ── */
   const inputSt: React.CSSProperties = {
@@ -388,12 +444,78 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* busca */}
-            <div style={{ position: "relative", marginBottom: 20, maxWidth: 360 }}>
-              <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--gray-mid)" }} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar produto..."
-                style={{ ...inputSt, paddingLeft: 36 }} />
+            {/* busca + filtro de status */}
+            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 360 }}>
+                <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--gray-mid)" }} />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar produto..."
+                  style={{ ...inputSt, paddingLeft: 36 }} />
+              </div>
+
+              {/* filtro ativo/inativo */}
+              <div style={{ display: "flex", gap: 6 }}>
+                {([
+                  { value: "todos",    label: "Todos",    count: products.length },
+                  { value: "ativos",   label: "Ativos",   count: products.filter(p => p.active).length },
+                  { value: "inativos", label: "Inativos", count: products.filter(p => !p.active).length },
+                ] as { value: typeof statusFilter; label: string; count: number }[]).map(opt => (
+                  <button key={opt.value} onClick={() => setStatusFilter(opt.value)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 5,
+                      padding: "7px 12px", borderRadius: 8, border: "none", cursor: "pointer",
+                      fontSize: 12, fontWeight: 600, transition: "all 0.15s",
+                      background: statusFilter === opt.value
+                        ? opt.value === "inativos" ? "rgba(224,85,85,0.15)" : "rgba(201,168,76,0.15)"
+                        : "var(--black-mid)",
+                      color: statusFilter === opt.value
+                        ? opt.value === "inativos" ? "#e05555" : "var(--gold)"
+                        : "var(--gray-mid)",
+                      outline: statusFilter === opt.value
+                        ? `1px solid ${opt.value === "inativos" ? "rgba(224,85,85,0.4)" : "rgba(201,168,76,0.4)"}`
+                        : "1px solid rgba(255,255,255,0.06)",
+                    }}>
+                    {opt.label}
+                    <span style={{
+                      background: statusFilter === opt.value
+                        ? opt.value === "inativos" ? "rgba(224,85,85,0.25)" : "rgba(201,168,76,0.25)"
+                        : "rgba(255,255,255,0.08)",
+                      borderRadius: 4, padding: "1px 5px", fontSize: 11,
+                    }}>
+                      {opt.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* barra de bulk actions — aparece quando tem itens selecionados */}
+            {selectedIds.size > 0 && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                padding: "10px 16px", marginBottom: 12, borderRadius: 10,
+                background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.25)",
+              }}>
+                <span style={{ color: "var(--gold)", fontSize: 13, fontWeight: 600, flex: 1 }}>
+                  {selectedIds.size} produto{selectedIds.size > 1 ? "s" : ""} selecionado{selectedIds.size > 1 ? "s" : ""}
+                </span>
+                <button onClick={() => bulkSetActive(true)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(76,175,80,0.15)", color: "#4CAF50", fontSize: 12, fontWeight: 600 }}>
+                  <Eye size={13} /> Ativar todos
+                </button>
+                <button onClick={() => bulkSetActive(false)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(224,85,85,0.1)", color: "#e05555", fontSize: 12, fontWeight: 600 }}>
+                  <EyeOff size={13} /> Desativar todos
+                </button>
+                <button onClick={bulkDelete}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(224,85,85,0.15)", color: "#e05555", fontSize: 12, fontWeight: 600 }}>
+                  <Trash2 size={13} /> Remover todos
+                </button>
+                <button onClick={() => setSelectedIds(new Set())}
+                  style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "none", cursor: "pointer", color: "var(--gray-mid)", fontSize: 12 }}>
+                  <X size={13} />
+                </button>
+              </div>
+            )}
 
             {dbLoading ? (
               <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
@@ -403,7 +525,13 @@ export default function AdminPage() {
               <>
                 {/* ── TABELA (desktop) ── */}
                 <div className="hidden md:block" style={{ background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.12)", borderRadius: 12, overflow: "hidden" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px 110px 100px", padding: "10px 16px", borderBottom: "1px solid rgba(201,168,76,0.1)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "32px 2fr 1fr 1fr 80px 110px 100px", padding: "10px 16px", borderBottom: "1px solid rgba(201,168,76,0.1)" }}>
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <input type="checkbox"
+                        checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                        onChange={toggleSelectAll}
+                        style={{ accentColor: "var(--gold)", cursor: "pointer", width: 14, height: 14 }} />
+                    </div>
                     {["Produto","Categoria","Preço","Disponível","Status","Ações"].map(h => (
                       <p key={h} style={{ color: "var(--gray-mid)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</p>
                     ))}
@@ -414,7 +542,13 @@ export default function AdminPage() {
                     </p>
                   )}
                   {filtered.map((p, i) => (
-                    <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 80px 110px 100px", alignItems: "center", padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid rgba(201,168,76,0.06)" : "none", opacity: !p.active ? 0.5 : 1 }}>
+                    <div key={p.id} style={{ display: "grid", gridTemplateColumns: "32px 2fr 1fr 1fr 80px 110px 100px", alignItems: "center", padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid rgba(201,168,76,0.06)" : "none", opacity: !p.active ? 0.5 : 1, background: selectedIds.has(p.id) ? "rgba(201,168,76,0.05)" : "transparent" }}>
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <input type="checkbox"
+                          checked={selectedIds.has(p.id)}
+                          onChange={() => toggleSelect(p.id)}
+                          style={{ accentColor: "var(--gold)", cursor: "pointer", width: 14, height: 14 }} />
+                      </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 40, height: 40, borderRadius: 6, flexShrink: 0, background: "var(--black)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                           {p.product_images?.[0]
@@ -470,14 +604,31 @@ export default function AdminPage() {
 
                 {/* ── CARDS (mobile) ── */}
                 <div className="md:hidden" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {/* selecionar todos no mobile */}
+                  {filtered.length > 0 && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", cursor: "pointer", color: "var(--gray-mid)", fontSize: 13 }}>
+                      <input type="checkbox"
+                        checked={selectedIds.size === filtered.length}
+                        onChange={toggleSelectAll}
+                        style={{ accentColor: "var(--gold)", cursor: "pointer", width: 16, height: 16 }} />
+                      Selecionar todos ({filtered.length})
+                    </label>
+                  )}
                   {filtered.length === 0 && (
                     <p style={{ padding: 24, color: "var(--gray-mid)", fontSize: 14, textAlign: "center", background: "var(--black-soft)", borderRadius: 12 }}>
                       {products.length === 0 ? "Nenhum produto cadastrado ainda." : "Nenhum resultado."}
                     </p>
                   )}
                   {filtered.map(p => (
-                    <div key={p.id} style={{ background: "var(--black-soft)", border: "1px solid rgba(201,168,76,0.12)", borderRadius: 12, padding: 14, opacity: !p.active ? 0.5 : 1 }}>
+                    <div key={p.id} style={{ border: `1px solid ${selectedIds.has(p.id) ? "rgba(201,168,76,0.4)" : "rgba(201,168,76,0.12)"}`, borderRadius: 12, padding: 14, opacity: !p.active ? 0.6 : 1, background: selectedIds.has(p.id) ? "rgba(201,168,76,0.05)" : "var(--black-soft)" }}>
                       <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                        {/* checkbox no mobile */}
+                        <div style={{ display: "flex", alignItems: "flex-start", paddingTop: 2 }}>
+                          <input type="checkbox"
+                            checked={selectedIds.has(p.id)}
+                            onChange={() => toggleSelect(p.id)}
+                            style={{ accentColor: "var(--gold)", cursor: "pointer", width: 16, height: 16 }} />
+                        </div>
                         <div style={{ width: 52, height: 52, borderRadius: 8, flexShrink: 0, background: "var(--black)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                           {p.product_images?.[0]
                             // eslint-disable-next-line @next/next/no-img-element

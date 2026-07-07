@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import ProductCard from "@/app/components/ui/ProductCard";
 import { Product } from "@/lib/products-mock";
 
@@ -25,12 +26,16 @@ export default function LancamentosPage() {
   useEffect(() => {
     async function load() {
       const sb = createClient();
-      const { data } = await sb
-        .from("products")
-        .select("*, categories(name,slug), product_images(url,sort_order)")
-        .eq("active", true)
-        .eq("is_new", true)
-        .order("created_at", { ascending: false });
+      // busca em lotes de 1.000 (teto padrão do PostgREST)
+      const data = await fetchAllRows((from, to) =>
+        sb
+          .from("products")
+          .select("*, categories(name,slug), product_images(url,sort_order)")
+          .eq("active", true)
+          .eq("is_new", true)
+          .order("created_at", { ascending: false })
+          .range(from, to)
+      );
 
       const now = Date.now();
       const products = (data ?? [])

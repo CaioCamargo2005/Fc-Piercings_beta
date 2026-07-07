@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react";
 import ProductCard from "./components/ui/ProductCard";
 import ProductSlider from "./components/ui/ProductSlider";
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import { Product } from "@/lib/products-mock";
 
 /* embaralha um array sem mutar o original (Fisher-Yates) */
@@ -100,14 +101,19 @@ export default function Home() {
     async function load() {
       try {
         const sb = createClient();
-        const { data, error } = await sb
-          .from("products")
-          .select("*, categories(name,slug), product_images(url,sort_order)")
-          .eq("active", true)
-          .order("created_at", { ascending: false });
+        // busca em lotes de 1.000 — o "Sugestões para você" e os samples de
+        // categoria precisam do catálogo inteiro, senão produtos além da
+        // linha 1.000 nunca aparecem na home
+        const data = await fetchAllRows<DBProduct>((from, to) =>
+          sb
+            .from("products")
+            .select("*, categories(name,slug), product_images(url,sort_order)")
+            .eq("active", true)
+            .order("created_at", { ascending: false })
+            .range(from, to)
+        );
 
-        if (error) throw error;
-        const all = (data as DBProduct[] ?? []).map(toProduct);
+        const all = (data ?? []).map(toProduct);
 
         if (all.length === 0) {
           setHasProducts(false);

@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, SearchX } from "lucide-react";
 import { searchProducts } from "@/lib/search";
+import { Product } from "@/lib/products-mock";
 import ProductCard from "@/app/components/ui/ProductCard";
 import SearchBar from "@/app/components/ui/SearchBar";
 
@@ -12,7 +13,20 @@ function BuscaContent() {
   const params = useSearchParams();
   const query  = params.get("q") ?? "";
 
-  const results = useMemo(() => searchProducts(query), [query]);
+  const [results,   setResults]   = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    if (!query.trim()) { setResults([]); return; }
+    setSearching(true);
+    searchProducts(query).then(r => {
+      if (!alive) return;
+      setResults(r);
+      setSearching(false);
+    });
+    return () => { alive = false; };
+  }, [query]);
 
   return (
     <div style={{ background: "var(--white-off)", minHeight: "calc(100vh - 120px)" }}>
@@ -40,13 +54,20 @@ function BuscaContent() {
                 }}>&quot;{query}&quot;</span>
               </h1>
               <p style={{ color: "var(--gray-mid)", fontSize: 14 }}>
-                {results.length === 0
-                  ? "Nenhum produto encontrado"
-                  : `${results.length} ${results.length === 1 ? "produto encontrado" : "produtos encontrados"}`}
+                {searching
+                  ? "Buscando..."
+                  : results.length === 0
+                    ? "Nenhum produto encontrado"
+                    : `${results.length} ${results.length === 1 ? "produto encontrado" : "produtos encontrados"}`}
               </p>
             </div>
 
-            {results.length > 0 ? (
+            {searching ? (
+              <div style={{ display: "flex", justifyContent: "center", padding: "60px 20px" }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid rgba(201,168,76,0.2)", borderTopColor: "var(--gold)", animation: "spin 0.8s linear infinite" }} />
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            ) : results.length > 0 ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(185px, 1fr))", gap: 16 }}>
                 {results.map(p => <ProductCard key={p.id} product={p} />)}
               </div>

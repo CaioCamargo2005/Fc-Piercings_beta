@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import type { Database } from "@/lib/supabase/database.types";
 
 export type ProductRow    = Database["public"]["Tables"]["products"]["Row"];
@@ -44,9 +45,21 @@ export async function fetchProducts(filters?: {
     if (cat && 'id' in cat) query = query.eq("category_id", (cat as { id: string }).id);
   }
 
-  const { data, error } = await query;
-  if (error) { console.error("fetchProducts:", error); return []; }
-  return data ?? [];
+  // com limit explícito, uma query só resolve; sem limit, busca em
+  // lotes de 1.000 para não truncar no teto padrão do PostgREST
+  if (filters?.limit) {
+    const { data, error } = await query;
+    if (error) { console.error("fetchProducts:", error); return []; }
+    return data ?? [];
+  }
+
+  try {
+    const data = await fetchAllRows((from, to) => query.range(from, to));
+    return data ?? [];
+  } catch (error) {
+    console.error("fetchProducts:", error);
+    return [];
+  }
 }
 
 export async function fetchProductBySlug(slug: string) {
@@ -69,14 +82,21 @@ export async function fetchProductBySlug(slug: string) {
 
 export async function fetchAllProductsAdmin() {
   // sem filtro active=true — admin vê tudo
+  // busca em lotes de 1.000 (teto padrão do PostgREST)
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(`*, categories ( name, slug ), product_images ( url, sort_order )`)
-    .order("created_at", { ascending: false });
-
-  if (error) { console.error("fetchAllProductsAdmin:", error); return []; }
-  return data ?? [];
+  try {
+    const data = await fetchAllRows((from, to) =>
+      supabase
+        .from("products")
+        .select(`*, categories ( name, slug ), product_images ( url, sort_order )`)
+        .order("created_at", { ascending: false })
+        .range(from, to)
+    );
+    return data ?? [];
+  } catch (error) {
+    console.error("fetchAllProductsAdmin:", error);
+    return [];
+  }
 }
 
 /* ── criar / editar / excluir produto (admin) ──────────────── */

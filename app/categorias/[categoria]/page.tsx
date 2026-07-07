@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronRight, SlidersHorizontal, X, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import ProductCard from "@/app/components/ui/ProductCard";
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import { Product } from "@/lib/products-mock";
 
 const ITEMS_PER_PAGE = 12;
@@ -82,21 +83,29 @@ function CategoriaContent() {
       setLoading(true);
       try {
         const sb = createClient();
-        let query = sb
-          .from("products")
-          .select("*, categories(name,slug), product_images(url,sort_order)")
-          .eq("active", true);
 
-        if (slug === "ofertas")    query = query.eq("on_sale", true);
-        else if (slug === "lancamentos") query = query.eq("is_new", true);
-        else if (slug === "destaques")   query = query.eq("featured", true);
-        else {
-          // busca pelo slug da categoria
+        // resolve o id da categoria uma vez só (fora do loop de lotes)
+        let categoryId: string | null = null;
+        if (slug !== "ofertas" && slug !== "lancamentos" && slug !== "destaques") {
           const { data: cat } = await sb.from("categories").select("id").eq("slug", slug).single();
-          if (cat && "id" in cat) query = query.eq("category_id", (cat as { id: string }).id);
+          if (cat && "id" in cat) categoryId = (cat as { id: string }).id;
         }
 
-        const { data } = await query.order("created_at", { ascending: false });
+        // busca em lotes de 1.000 — PostgREST trunca queries maiores silenciosamente
+        const data = await fetchAllRows((from, to) => {
+          let query = sb
+            .from("products")
+            .select("*, categories(name,slug), product_images(url,sort_order)")
+            .eq("active", true);
+
+          if (slug === "ofertas")          query = query.eq("on_sale", true);
+          else if (slug === "lancamentos") query = query.eq("is_new", true);
+          else if (slug === "destaques")   query = query.eq("featured", true);
+          else if (categoryId)             query = query.eq("category_id", categoryId);
+
+          return query.order("created_at", { ascending: false }).range(from, to);
+        });
+
         const products = (data ?? []).map((p: Record<string, unknown>) => {
           const imgs = [...((p.product_images as { url: string; sort_order: number }[]) ?? [])]
             .sort((a, b) => a.sort_order - b.sort_order).map(i => i.url);
