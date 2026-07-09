@@ -146,6 +146,7 @@ export default function Navbar() {
       {/* ── DESKTOP: linha horizontal com hover dropdown ── */}
       <div className="hidden md:flex" style={{
         alignItems: "center", gap: 24, padding: "4px 16px",
+        flexWrap: "wrap", rowGap: 0,
         overflow: "visible",
       }}>
         {navCategories.map(cat => (
@@ -162,9 +163,12 @@ export default function Navbar() {
         </Link>
       </div>
 
-      {/* ── MOBILE: botão de menu ── */}
-      <div className="md:hidden" style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
+      {/* ── MOBILE: botão de menu (só aparece quando o menu completo não cabe) ──
+          IMPORTANTE: display via classe (flex md:hidden), nunca inline —
+          style={{ display: "flex" }} vence o md:hidden e faz a linha
+          aparecer duplicada no desktop */}
+      <div className="flex md:hidden" style={{
+        alignItems: "center",
         padding: "8px 16px",
       }}>
         <button onClick={() => setMobileOpen(true)}
@@ -176,23 +180,14 @@ export default function Navbar() {
           <Menu size={18} />
           Categorias
         </button>
-        <Link href="/ofertas" style={{
-          padding: "6px 14px", borderRadius: 6,
-          background: "linear-gradient(135deg, var(--gold-dark), var(--gold))",
-          color: "var(--black)", fontSize: 12, fontWeight: 700,
-          textDecoration: "none",
-        }}>
-          🔥 Ofertas
-        </Link>
       </div>
 
-      {/* ── MOBILE: drawer lateral ── */}
+      {/* ── MOBILE: drawer lateral (abre à esquerda, mesmo lado do botão) ── */}
       {mobileOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex" }}>
-          <div style={{ flex: 1, background: "rgba(0,0,0,0.6)" }} onClick={() => setMobileOpen(false)} />
           <div className="animate-fadeDown" style={{
             width: "82vw", maxWidth: 320, background: "var(--black-soft)",
-            height: "100vh", overflowY: "auto", boxShadow: "-8px 0 32px rgba(0,0,0,0.5)",
+            height: "100vh", overflowY: "auto", boxShadow: "8px 0 32px rgba(0,0,0,0.5)",
           }}>
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -216,6 +211,7 @@ export default function Navbar() {
               ✨ Lançamentos
             </Link>
           </div>
+          <div style={{ flex: 1, background: "rgba(0,0,0,0.6)" }} onClick={() => setMobileOpen(false)} />
         </div>
       )}
     </nav>

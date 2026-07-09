@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import ProductCard from "./components/ui/ProductCard";
 import ProductSlider from "./components/ui/ProductSlider";
@@ -172,31 +173,19 @@ export default function Home() {
 
   return (
     <div style={{ background: "var(--white)" }}>
-      {/* HERO */}
-      <div className="px-4 sm:px-8" style={{ background: "var(--black-soft)", borderBottom: "2px solid rgba(201,168,76,0.2)", paddingTop: 48, paddingBottom: 48, textAlign: "center" }}>
-        <p style={{ color: "var(--gray-mid)", fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 12 }}>Bem-vinda à</p>
-        <h1 className="text-[32px] sm:text-[42px]" style={{ fontFamily: "var(--font-display)", fontWeight: 900, lineHeight: 1.1, background: "linear-gradient(135deg,#8B6914,#C9A84C,#F5E0A0,#C9A84C,#8B6914)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 16 }}>
-          FC Piercing<br />e Semi Joias
-        </h1>
-        <p style={{ color: "var(--gray-mid)", fontSize: 15, marginBottom: 28 }}>
-          Titânio cirúrgico, aço PVD Gold e semi joias com garantia de 1 ano
-        </p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href="/categorias/titanio-natural" className="btn-gold"
-            style={{ padding: "12px 28px", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
-            Ver catálogo
-          </Link>
-          <a href="https://wa.me/5519997103023" target="_blank" rel="noopener noreferrer"
-            style={{ padding: "12px 28px", borderRadius: 8, fontSize: 14, fontWeight: 600, border: "1px solid rgba(37,211,102,0.4)", color: "#25D366", background: "rgba(37,211,102,0.08)", textDecoration: "none" }}>
-            💬 Falar no WhatsApp
-          </a>
-        </div>
-        <div className="gap-3 sm:gap-8" style={{ display: "flex", justifyContent: "center", marginTop: 32, flexWrap: "wrap" }}>
-          {["🚚 Entrega para todo Brasil","✅ Titânio certificado ASTM F136","🔒 Compra 100% segura","⭐ Garantia de 1 ano"].map(b => (
-            <span key={b} style={{ color: "var(--gray-mid)", fontSize: 13 }}>{b}</span>
-          ))}
-        </div>
-      </div>
+      {/* HERO — arte completa da capa; o clique leva ao catálogo,
+          já que o botão "Confira nossas coleções" está desenhado na imagem */}
+      <Link href="/categorias/titanio-natural" aria-label="Confira nossas coleções"
+        style={{ display: "block", background: "var(--black)", borderBottom: "2px solid rgba(201,168,76,0.2)" }}>
+        <Image
+          src="/hero-ear.jpg"
+          alt="FC Piercing — o brilho que te completa"
+          width={1983}
+          height={793}
+          priority
+          style={{ display: "block", width: "100%", height: "auto" }}
+        />
+      </Link>
 
       {/* SEÇÕES */}
       <div className="px-4 sm:px-8" style={{ paddingTop: 40, paddingBottom: 40, maxWidth: 1400, margin: "0 auto" }}>

@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
-
 :root {
   --gold: #C9A84C;
   --gold-light: #E8C97A;
@@ -18,6 +16,7 @@
   --gray-dark: #444038;
 
   --font-display: 'Playfair Display', serif;
+  --font-script: 'Great Vibes', cursive;
   --font-body: 'DM Sans', sans-serif;
 
   --header-h: 72px;
@@ -26,6 +25,13 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
+
+/* trava contra rolagem horizontal — nenhum elemento pode empurrar a página
+   para fora da janela; 'hidden' é o fallback para navegadores sem 'clip' */
+html, body {
+  overflow-x: hidden;
+  overflow-x: clip;
+}
 
 body {
   background: var(--white);

@@ -48,7 +48,7 @@ export default function Header() {
         style={{ background: "var(--black-soft)", borderBottom: "1px solid rgba(201,168,76,0.2)" }}
         className="sticky top-0 z-50 w-full"
       >
-        <div className="px-3 sm:px-6 lg:px-8 gap-2 sm:gap-6" style={{ display: "flex", alignItems: "center", height: 72 }}>
+        <div className="gap-2 sm:gap-6" style={{ display: "flex", alignItems: "center", height: 72, paddingLeft: 16, paddingRight: 16 }}>
 
           {/* LOGO */}
           <Link href="/" className="flex-shrink-0 flex items-center gap-2 sm:gap-3 group">
