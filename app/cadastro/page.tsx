@@ -149,10 +149,12 @@ export default function CadastroPage() {
 
       setSuccess(true);
 
-      // Se já tem sessão (e-mail confirmação desativado), vai para /conta
-      // Se não tem (e-mail de confirmação ativado), fica na tela de sucesso
+      // Se já tem sessão (confirmação de e-mail desativada), vai para /conta
+      // Se não tem (confirmação ativada), vai para a tela de verificação de e-mail
       if (signUpData.session) {
         setTimeout(() => router.push("/conta"), 1500);
+      } else {
+        router.push(`/verificar-email?email=${encodeURIComponent(form.email)}`);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao criar conta.");

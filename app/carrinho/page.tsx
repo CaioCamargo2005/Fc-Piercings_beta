@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Trash2, Plus, Minus, ShoppingBag,
   Truck, MessageCircle, CreditCard, QrCode,
-  ChevronRight, Shield,
+  ChevronRight, Shield, MapPin,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useAuth } from "@/lib/auth-mock";
+import { createClient } from "@/lib/supabase/client";
+
+const UFS = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
+  "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+];
 
 const SHIPPING_OPTIONS = [
   { id: "sedex", label: "SEDEX",        days: "3 a 5 dias úteis",  price: 32.50 },
@@ -16,10 +23,71 @@ const SHIPPING_OPTIONS = [
 
 export default function CarrinhoPage() {
   const { items, count, subtotal, removeItem, updateQty, clearCart } = useCart();
+  const { user, loggedIn } = useAuth();
 
   const [cep, setCep]                   = useState("");
   const [shippingCalc, setShippingCalc] = useState(false);
   const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
+
+  // ── endereço de entrega (obrigatório para finalizar) ──
+  const [estado, setEstado]   = useState("");
+  const [cidade, setCidade]   = useState("");
+  const [rua, setRua]         = useState("");
+  const [bairro, setBairro]   = useState("");
+  const [numero, setNumero]   = useState("");
+  const [saveAddress, setSaveAddress] = useState(true);
+  const [cepLoading, setCepLoading]   = useState(false);
+
+  // pré-preenche com o endereço salvo na conta (só campos ainda vazios)
+  useEffect(() => {
+    if (!user) return;
+    if (user.address_cep && !cep) setCep(user.address_cep);
+    if (user.address_state && !estado)     setEstado(user.address_state);
+    if (user.address_city && !cidade)      setCidade(user.address_city);
+    if (user.address_street && !rua)       setRua(user.address_street);
+    if (user.address_district && !bairro)  setBairro(user.address_district);
+    if (user.address_number && !numero)    setNumero(user.address_number);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // busca o endereço pelo CEP no ViaCEP quando completa 8 dígitos
+  async function lookupCep(value: string) {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        if (data.uf)          setEstado(data.uf);
+        if (data.localidade)  setCidade(data.localidade);
+        if (data.logradouro)  setRua(data.logradouro);
+        if (data.bairro)      setBairro(data.bairro);
+      }
+    } catch { /* offline ou CEP inválido — usuário preenche na mão */ }
+    finally { setCepLoading(false); }
+  }
+
+  const addressComplete =
+    cep.replace(/\D/g, "").length === 8 &&
+    estado !== "" && cidade.trim() !== "" &&
+    rua.trim() !== "" && bairro.trim() !== "" && numero.trim() !== "";
+
+  // salva o endereço na conta ao finalizar (se logado e marcado)
+  async function persistAddress() {
+    if (!loggedIn || !user || !saveAddress) return;
+    try {
+      const sb = createClient();
+      await sb.from("profiles").update({
+        address_cep: cep,
+        address_state: estado,
+        address_city: cidade,
+        address_street: rua,
+        address_district: bairro,
+        address_number: numero,
+      } as never).eq("id", user.id);
+    } catch (e) { console.error("persistAddress:", e); }
+  }
 
   const shippingPrice = SHIPPING_OPTIONS.find(s => s.id === selectedShipping)?.price ?? 0;
   const total         = subtotal + shippingPrice;
@@ -37,8 +105,14 @@ export default function CarrinhoPage() {
       const opts = [i.selectedSize, i.selectedSide, i.selectedColor].filter(Boolean).join(", ");
       return `• ${i.qty}x ${i.product.name}${opts ? ` (${opts})` : ""} — R$ ${(i.product.price * i.qty).toFixed(2).replace(".", ",")}`;
     }).join("\n");
+    const endereco =
+      `\nEndereço de entrega:\n` +
+      `${rua}, ${numero} — ${bairro}\n` +
+      `${cidade}/${estado}\n` +
+      `CEP: ${cep}`;
     const parts = [
       `Olá! Gostaria de finalizar meu pedido:\n\n${lines}`,
+      endereco,
       `\nSubtotal: R$ ${subtotal.toFixed(2).replace(".", ",")}`,
       shipping ? `Frete (${shipping.label}): ${shipping.price === 0 ? "Grátis" : `R$ ${shipping.price.toFixed(2).replace(".", ",")}` }` : null,
       `\nTotal: R$ ${total.toFixed(2).replace(".", ",")}`,
@@ -200,13 +274,18 @@ export default function CarrinhoPage() {
               ))}
             </div>
 
-            {/* calcular frete */}
+            {/* entrega: endereço (obrigatório) + frete */}
             <div style={{ ...card, padding: 20 }}>
-              <p style={sectionTitle}><Truck size={14} style={{ display: "inline", marginRight: 6 }} />Calcular Frete</p>
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                <input value={cep} onChange={e => setCep(e.target.value.replace(/\D/g, "").slice(0, 8)
-                  .replace(/(\d{5})(\d)/, "$1-$2"))}
-                  placeholder="00000-000" maxLength={9}
+              <p style={sectionTitle}><MapPin size={14} style={{ display: "inline", marginRight: 6 }} />Endereço de Entrega</p>
+
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                <input value={cep}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2");
+                    setCep(v);
+                    lookupCep(v); // auto-preenche rua/bairro/cidade/UF quando completa
+                  }}
+                  placeholder="CEP: 00000-000" maxLength={9}
                   style={{ flex: 1, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8,
                     padding: "10px 14px", fontSize: 14, outline: "none" }}
                   onFocus={e => (e.target.style.borderColor = "var(--gold)")}
@@ -215,9 +294,40 @@ export default function CarrinhoPage() {
                 <button onClick={calcShipping} className="btn-gold"
                   style={{ padding: "10px 18px", borderRadius: 8, border: "none",
                     fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                  Calcular
+                  {cepLoading ? "..." : "Calcular frete"}
                 </button>
               </div>
+
+              {(() => {
+                const inp: React.CSSProperties = {
+                  width: "100%", border: "1px solid rgba(0,0,0,0.12)", borderRadius: 8,
+                  padding: "10px 14px", fontSize: 14, outline: "none", background: "var(--white)",
+                  color: "var(--black)",
+                };
+                return (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                    <input value={rua} onChange={e => setRua(e.target.value)} placeholder="Rua"
+                      style={{ ...inp, gridColumn: "1 / -1" }} />
+                    <input value={numero} onChange={e => setNumero(e.target.value)} placeholder="Número" style={inp} />
+                    <input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Bairro" style={inp} />
+                    <input value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Cidade" style={inp} />
+                    <select value={estado} onChange={e => setEstado(e.target.value)}
+                      style={{ ...inp, color: estado ? "var(--black)" : "var(--gray-mid)" }}>
+                      <option value="">Estado (UF)</option>
+                      {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                    </select>
+                    {loggedIn && (
+                      <label style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 8,
+                        fontSize: 13, color: "var(--gray-mid)", cursor: "pointer" }}>
+                        <input type="checkbox" checked={saveAddress}
+                          onChange={e => setSaveAddress(e.target.checked)}
+                          style={{ accentColor: "var(--gold)" }} />
+                        Salvar endereço na minha conta
+                      </label>
+                    )}
+                  </div>
+                );
+              })()}
 
               {shippingCalc && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -285,18 +395,34 @@ export default function CarrinhoPage() {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <a href={`https://wa.me/5519997103023?text=${buildWhatsAppMsg()}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: "none",
-                    background: "rgba(37,211,102,0.1)", color: "#25D366",
-                    border: "1px solid rgba(37,211,102,0.3)" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(37,211,102,0.18)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(37,211,102,0.1)")}
-                >
-                  <MessageCircle size={17} />
-                  Finalizar via WhatsApp
-                </a>
+                {addressComplete ? (
+                  <a href={`https://wa.me/5519997103023?text=${buildWhatsAppMsg()}`}
+                    target="_blank" rel="noopener noreferrer"
+                    onClick={() => { persistAddress(); }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: "none",
+                      background: "rgba(37,211,102,0.1)", color: "#25D366",
+                      border: "1px solid rgba(37,211,102,0.3)" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(37,211,102,0.18)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "rgba(37,211,102,0.1)")}
+                  >
+                    <MessageCircle size={17} />
+                    Finalizar via WhatsApp
+                  </a>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+                      background: "rgba(0,0,0,0.05)", color: "var(--gray-mid)",
+                      border: "1px solid rgba(0,0,0,0.1)", cursor: "not-allowed" }}>
+                      <MessageCircle size={17} />
+                      Finalizar via WhatsApp
+                    </div>
+                    <p style={{ fontSize: 12, color: "#e05555", textAlign: "center" }}>
+                      Preencha o endereço de entrega para finalizar
+                    </p>
+                  </div>
+                )}
 
                 <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 600,

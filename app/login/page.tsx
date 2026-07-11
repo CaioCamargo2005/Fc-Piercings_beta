@@ -24,6 +24,10 @@ export default function LoginPage() {
     const result = await login(email, password);
     if (result.ok) {
       router.push("/conta");
+    } else if (/not confirmed|não confirmad/i.test(result.error ?? "")) {
+      // conta existe mas o e-mail não foi verificado — leva direto
+      // para a página de verificação com reenvio
+      router.push(`/verificar-email?email=${encodeURIComponent(email)}`);
     } else {
       setError(result.error || "Erro ao entrar");
       setLoading(false);
@@ -175,7 +179,15 @@ export default function LoginPage() {
             {/* erro */}
             {error && (
               <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(224,85,85,0.1)", border: "1px solid rgba(224,85,85,0.3)", borderRadius: 8, color: "#e05555", fontSize: 13 }}>
-                {error}
+                {/de e-mail|not confirmed|confirme/i.test(error) ? (
+                  <>
+                    Seu e-mail ainda não foi confirmado.{" "}
+                    <Link href={`/verificar-email?email=${encodeURIComponent(email)}`}
+                      style={{ color: "var(--gold)", fontWeight: 600, textDecoration: "underline" }}>
+                      Reenviar e-mail de confirmação
+                    </Link>
+                  </>
+                ) : error}
               </div>
             )}
 

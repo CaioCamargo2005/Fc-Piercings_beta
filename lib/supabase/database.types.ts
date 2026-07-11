@@ -25,6 +25,12 @@ export type Database = {
           cnpj: string | null;
           account_type: "pessoa_fisica" | "pessoa_juridica";
           role: "customer" | "admin";    // admin inserido manualmente no painel
+          address_cep: string | null;
+          address_state: string | null;
+          address_city: string | null;
+          address_street: string | null;
+          address_district: string | null;
+          address_number: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -37,6 +43,12 @@ export type Database = {
           cnpj?: string | null;
           account_type?: "pessoa_fisica" | "pessoa_juridica";
           role?: "customer" | "admin";
+          address_cep?: string | null;
+          address_state?: string | null;
+          address_city?: string | null;
+          address_street?: string | null;
+          address_district?: string | null;
+          address_number?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -47,6 +59,12 @@ export type Database = {
           cnpj?: string | null;
           account_type?: "pessoa_fisica" | "pessoa_juridica";
           role?: "customer" | "admin";
+          address_cep?: string | null;
+          address_state?: string | null;
+          address_city?: string | null;
+          address_street?: string | null;
+          address_district?: string | null;
+          address_number?: string | null;
           updated_at?: string;
         };
       };
