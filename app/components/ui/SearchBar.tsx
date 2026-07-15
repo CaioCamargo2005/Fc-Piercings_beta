@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, X, Tag, LayoutGrid, ShoppingBag } from "lucide-react";
 import { getSuggestions, preloadSearchIndex, SearchSuggestion } from "@/lib/search";
+import { useAuth } from "@/lib/auth-mock";
+import { HIDE_PRICES_FOR_GUESTS } from "@/lib/store-config";
 
 type Props = {
   placeholder?: string;
@@ -25,6 +27,8 @@ const TYPE_COLOR: Record<SearchSuggestion["type"], string> = {
 };
 
 export default function SearchBar({ placeholder = "Buscar produtos...", autoFocus, onClose }: Props) {
+  const { loggedIn } = useAuth();
+  const showPrices = !HIDE_PRICES_FOR_GUESTS || loggedIn;
   const router   = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef  = useRef<HTMLDivElement>(null);
@@ -58,7 +62,7 @@ export default function SearchBar({ placeholder = "Buscar produtos...", autoFocu
     setHighlighted(-1);
     if (value.length >= 2) {
       const id = ++reqId.current;
-      const sugs = await getSuggestions(value);
+      const sugs = await getSuggestions(value, showPrices);
       if (id !== reqId.current) return; // resposta antiga, descarta
       setSuggestions(sugs);
       setOpen(sugs.length > 0);

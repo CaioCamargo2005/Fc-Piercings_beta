@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-mock";
+import { HIDE_PRICES_FOR_GUESTS } from "@/lib/store-config";
 import { createClient } from "@/lib/supabase/client";
 
 const UFS = [
@@ -73,6 +74,143 @@ export default function CarrinhoPage() {
     estado !== "" && cidade.trim() !== "" &&
     rua.trim() !== "" && bairro.trim() !== "" && numero.trim() !== "";
 
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError]     = useState<string | null>(null);
+
+  // ── Pix nativo ──
+  const [pixLoading, setPixLoading] = useState(false);
+  const [pixError, setPixError]     = useState<string | null>(null);
+  const [pixEmail, setPixEmail]     = useState("");
+  const [pixData, setPixData]       = useState<{
+    id: string; ref: string; qr: string; qrImg: string;
+  } | null>(null);
+  const [pixCopied, setPixCopied]   = useState(false);
+
+  // e-mail do Pix: pré-preenche com o da conta
+  useEffect(() => {
+    if (user?.email && !pixEmail) setPixEmail(user.email);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // enquanto o QR está aberto, consulta o status a cada 4s
+  useEffect(() => {
+    if (!pixData) return;
+    const timer = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/pix/status?id=${pixData.id}`);
+        const data = await res.json();
+        if (data.status === "approved") {
+          clearInterval(timer);
+          window.location.href =
+            `/pedido?status=approved&payment_id=${pixData.id}&external_reference=${pixData.ref}`;
+        }
+      } catch { /* tenta de novo no próximo tick */ }
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [pixData]);
+
+  // salva o resumo do pedido para a página /pedido montar a confirmação
+  function saveOrderSummary() {
+    const enderecoStr =
+      `${rua}, ${numero} — ${bairro}\n${cidade}/${estado}\nCEP: ${cep}`;
+    const lines = items.map(it => {
+      const extras = [it.selectedSize, it.selectedSide, it.selectedColor]
+        .filter(Boolean).join(", ");
+      return `${it.qty}x ${it.product.name}${extras ? ` (${extras})` : ""}`;
+    });
+    localStorage.setItem("fc-last-order", JSON.stringify({
+      lines,
+      address: enderecoStr,
+      total: `R$ ${total.toFixed(2).replace(".", ",")}`,
+    }));
+  }
+
+  // gera o pagamento Pix e abre o QR
+  async function handlePix() {
+    if (!addressComplete || pixLoading) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixEmail)) {
+      setPixError("Informe um e-mail válido para o comprovante do Pix.");
+      return;
+    }
+    setPixLoading(true);
+    setPixError(null);
+    try {
+      persistAddress();
+      saveOrderSummary();
+      const res = await fetch("/api/pix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: total,
+          email: pixEmail,
+          description: `Pedido FC Piercing — ${count} ${count === 1 ? "item" : "itens"}`,
+          address: { cep, estado, cidade, rua, bairro, numero },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.qr_code) {
+        throw new Error(data.error || "Não foi possível gerar o Pix.");
+      }
+      setPixData({
+        id: String(data.id),
+        ref: data.external_reference,
+        qr: data.qr_code,
+        qrImg: data.qr_code_base64,
+      });
+    } catch (e: unknown) {
+      setPixError(e instanceof Error ? e.message : "Erro ao gerar Pix.");
+    } finally {
+      setPixLoading(false);
+    }
+  }
+
+  function copyPix() {
+    if (!pixData) return;
+    navigator.clipboard.writeText(pixData.qr).then(() => {
+      setPixCopied(true);
+      setTimeout(() => setPixCopied(false), 2500);
+    });
+  }
+
+  // inicia o pagamento online: salva resumo p/ a página /pedido,
+  // cria a preferência no MP e redireciona
+  async function handleOnlinePayment() {
+    if (!addressComplete || payLoading) return;
+    setPayLoading(true);
+    setPayError(null);
+    try {
+      persistAddress(); // endereço na conta (fire-and-forget)
+
+      const shipping = SHIPPING_OPTIONS.find(s => s.id === selectedShipping);
+      saveOrderSummary();
+
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map(it => ({
+            title: it.product.name,
+            quantity: it.qty,
+            unit_price: it.product.price,
+          })),
+          shipping: shipping && shipping.price > 0
+            ? { label: shipping.label, price: shipping.price }
+            : null,
+          address: { cep, estado, cidade, rua, bairro, numero },
+          payerEmail: user?.email ?? null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.init_point) {
+        throw new Error(data.error || "Não foi possível iniciar o pagamento.");
+      }
+      window.location.href = data.init_point;
+    } catch (e: unknown) {
+      setPayError(e instanceof Error ? e.message : "Erro ao iniciar pagamento.");
+      setPayLoading(false);
+    }
+  }
+
   // salva o endereço na conta ao finalizar (se logado e marcado)
   async function persistAddress() {
     if (!loggedIn || !user || !saveAddress) return;
@@ -88,6 +226,9 @@ export default function CarrinhoPage() {
       } as never).eq("id", user.id);
     } catch (e) { console.error("persistAddress:", e); }
   }
+
+  // modo atacado: carrinho (preços e checkout) exige login
+  const cartLocked = HIDE_PRICES_FOR_GUESTS && !loggedIn;
 
   const shippingPrice = SHIPPING_OPTIONS.find(s => s.id === selectedShipping)?.price ?? 0;
   const total         = subtotal + shippingPrice;
@@ -146,6 +287,33 @@ export default function CarrinhoPage() {
           style={{ padding: "12px 28px", borderRadius: 10, fontSize: 14,
             fontWeight: 600, textDecoration: "none", marginTop: 8 }}>
           Ver produtos
+        </Link>
+      </div>
+    );
+  }
+
+  // modo atacado: visitante com itens antigos no carrinho precisa
+  // logar para ver preços e finalizar
+  if (cartLocked) {
+    return (
+      <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", gap: 16, padding: 32 }}>
+        <ShoppingBag size={56} style={{ color: "rgba(201,168,76,0.25)" }} />
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 22, color: "var(--black)", textAlign: "center" }}>
+          Entre para ver preços e finalizar
+        </p>
+        <p style={{ color: "var(--gray-mid)", fontSize: 14, textAlign: "center" }}>
+          {count > 0
+            ? `Você tem ${count} ${count === 1 ? "item guardado" : "itens guardados"} no carrinho.`
+            : "Faça login para montar seu carrinho."}
+        </p>
+        <Link href="/login" className="btn-gold"
+          style={{ padding: "12px 28px", borderRadius: 10, fontSize: 14,
+            fontWeight: 600, textDecoration: "none", marginTop: 8 }}>
+          Fazer login
+        </Link>
+        <Link href="/cadastro" style={{ color: "var(--gold-dark)", fontSize: 13, textDecoration: "none" }}>
+          Não tem conta? Cadastre-se grátis
         </Link>
       </div>
     );
@@ -311,6 +479,9 @@ export default function CarrinhoPage() {
                     <input value={numero} onChange={e => setNumero(e.target.value)} placeholder="Número" style={inp} />
                     <input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Bairro" style={inp} />
                     <input value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Cidade" style={inp} />
+                    <input value={pixEmail} onChange={e => setPixEmail(e.target.value)}
+                      placeholder="E-mail (comprovante do pagamento)" type="email"
+                      style={{ ...inp, gridColumn: "1 / -1" }} />
                     <select value={estado} onChange={e => setEstado(e.target.value)}
                       style={{ ...inp, color: estado ? "var(--black)" : "var(--gray-mid)" }}>
                       <option value="">Estado (UF)</option>
@@ -395,6 +566,45 @@ export default function CarrinhoPage() {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {addressComplete && (
+                  <button onClick={handlePix} disabled={pixLoading}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      width: "100%", padding: "13px", borderRadius: 10, fontSize: 14,
+                      fontWeight: 600, border: "1px solid rgba(0,168,132,0.4)",
+                      background: "rgba(0,168,132,0.1)", color: "#00A884",
+                      marginBottom: 10,
+                      cursor: pixLoading ? "wait" : "pointer",
+                      opacity: pixLoading ? 0.6 : 1,
+                    }}>
+                    <QrCode size={17} />
+                    {pixLoading ? "Gerando Pix..." : "Pagar com Pix (aprovação na hora)"}
+                  </button>
+                )}
+                {pixError && (
+                  <p style={{ fontSize: 12, color: "#e05555", textAlign: "center", marginBottom: 10 }}>
+                    {pixError}
+                  </p>
+                )}
+                {addressComplete && (
+                  <button onClick={handleOnlinePayment} disabled={payLoading}
+                    className="btn-gold"
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      width: "100%", padding: "13px", borderRadius: 10, fontSize: 14,
+                      fontWeight: 600, border: "none", marginBottom: 10,
+                      cursor: payLoading ? "wait" : "pointer",
+                      opacity: payLoading ? 0.6 : 1,
+                    }}>
+                    <CreditCard size={17} />
+                    {payLoading ? "Abrindo pagamento..." : "Pagar com cartão ou boleto"}
+                  </button>
+                )}
+                {payError && (
+                  <p style={{ fontSize: 12, color: "#e05555", textAlign: "center", marginBottom: 10 }}>
+                    {payError}
+                  </p>
+                )}
                 {addressComplete ? (
                   <a href={`https://wa.me/5519997103023?text=${buildWhatsAppMsg()}`}
                     target="_blank" rel="noopener noreferrer"
@@ -423,28 +633,6 @@ export default function CarrinhoPage() {
                     </p>
                   </div>
                 )}
-
-                <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  padding: "13px", borderRadius: 10, fontSize: 14, fontWeight: 600,
-                  background: "rgba(201,168,76,0.08)", color: "var(--gold)",
-                  border: "1px solid rgba(201,168,76,0.25)", cursor: "pointer" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(201,168,76,0.15)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(201,168,76,0.08)")}
-                >
-                  <QrCode size={17} />
-                  Pagar com Pix
-                  <span style={{ fontSize: 11, background: "rgba(201,168,76,0.15)",
-                    padding: "2px 6px", borderRadius: 4 }}>5% OFF</span>
-                </button>
-
-                <button className="btn-gold"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    width: "100%", padding: "13px", borderRadius: 10, border: "none",
-                    fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-                >
-                  <CreditCard size={17} />
-                  Pagar com Cartão
-                </button>
               </div>
             </div>
 
@@ -463,6 +651,60 @@ export default function CarrinhoPage() {
           </div>
         </div>
       </div>
+      {/* ── modal do Pix ── */}
+      {pixData && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 300, display: "flex",
+          alignItems: "center", justifyContent: "center", padding: 16,
+          background: "rgba(0,0,0,0.75)" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "28px 24px",
+            width: "100%", maxWidth: 400, textAlign: "center",
+            maxHeight: "90vh", overflowY: "auto" }}>
+            <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700,
+              color: "var(--black)", marginBottom: 4 }}>
+              Pague com Pix
+            </p>
+            <p style={{ fontSize: 13, color: "#666", marginBottom: 16 }}>
+              Escaneie o QR Code no app do seu banco<br />ou use o copia-e-cola
+            </p>
+
+            {pixData.qrImg && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={`data:image/png;base64,${pixData.qrImg}`} alt="QR Code Pix"
+                style={{ width: 220, height: 220, margin: "0 auto 16px", display: "block",
+                  border: "1px solid rgba(0,0,0,0.1)", borderRadius: 8 }} />
+            )}
+
+            <button onClick={copyPix}
+              style={{ width: "100%", padding: "12px", borderRadius: 8, fontSize: 13,
+                fontWeight: 600, border: "1px solid rgba(0,168,132,0.4)",
+                background: pixCopied ? "#00A884" : "rgba(0,168,132,0.08)",
+                color: pixCopied ? "#fff" : "#00A884",
+                cursor: "pointer", marginBottom: 14 }}>
+              {pixCopied ? "✓ Código copiado!" : "Copiar código Pix (copia e cola)"}
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
+              gap: 8, marginBottom: 16 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%",
+                background: "var(--gold)", animation: "pulse 1.5s infinite" }} />
+              <span style={{ fontSize: 13, color: "#666" }}>
+                Aguardando pagamento — a confirmação é automática
+              </span>
+            </div>
+            <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
+
+            <p style={{ fontSize: 11.5, color: "#999", marginBottom: 14 }}>
+              Total: R$ {total.toFixed(2).replace(".", ",")} · Pedido {pixData.ref}
+            </p>
+
+            <button onClick={() => setPixData(null)}
+              style={{ background: "none", border: "none", fontSize: 13, color: "#999",
+                cursor: "pointer", textDecoration: "underline" }}>
+              Cancelar e voltar ao carrinho
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

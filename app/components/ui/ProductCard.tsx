@@ -4,6 +4,9 @@ import Link from "next/link";
 import { ShoppingCart, Heart } from "lucide-react";
 import { Product } from "@/lib/products-mock";
 import { useCart } from "@/lib/cart-context";
+import { useAuth } from "@/lib/auth-mock";
+import { HIDE_PRICES_FOR_GUESTS } from "@/lib/store-config";
+import { Lock } from "lucide-react";
 
 type Props = {
   product: Product;
@@ -12,6 +15,9 @@ type Props = {
 
 export default function ProductCard({ product, onAddToCart }: Props) {
   const { addItem, isInCart } = useCart();
+  const { loggedIn } = useAuth();
+  const showPrices = !HIDE_PRICES_FOR_GUESTS || loggedIn;
+
   const discount = (product.originalPrice && product.originalPrice > product.price)
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : null;
@@ -114,25 +120,41 @@ export default function ProductCard({ product, onAddToCart }: Props) {
           </p>
         </Link>
 
-        {/* preços */}
-        <div style={{ marginBottom: 10 }}>
-          {product.originalPrice && product.originalPrice > product.price && (
-            <p style={{ color: "var(--gray-mid)", fontSize: 11, textDecoration: "line-through" }}>
-              R$ {product.originalPrice.toFixed(2).replace(".", ",")}
+        {/* preços — ocultos para visitantes quando HIDE_PRICES_FOR_GUESTS */}
+        {showPrices ? (
+          <div style={{ marginBottom: 10 }}>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <p style={{ color: "var(--gray-mid)", fontSize: 11, textDecoration: "line-through" }}>
+                R$ {product.originalPrice.toFixed(2).replace(".", ",")}
+              </p>
+            )}
+            <p style={{
+              fontSize: 16, fontWeight: 700,
+              background: "linear-gradient(135deg,#8B6914,#C9A84C)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+            }}>
+              R$ {product.price.toFixed(2).replace(".", ",")}
             </p>
-          )}
-          <p style={{
-            fontSize: 16, fontWeight: 700,
-            background: "linear-gradient(135deg,#8B6914,#C9A84C)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-          }}>
-            R$ {product.price.toFixed(2).replace(".", ",")}
-          </p>
-        </div>
+          </div>
+        ) : (
+          <div style={{ marginBottom: 10 }}>
+            <Link href="/login" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              fontSize: 13, fontWeight: 600, color: "var(--gold-dark)",
+              textDecoration: "none",
+            }}>
+              <Lock size={13} />
+              Entre para ver o preço
+            </Link>
+          </div>
+        )}
 
         {/* botão adicionar */}
         <button
-          onClick={() => { if (product.stock > 0) { addItem(product, 1); onAddToCart?.(product); } }}
+          onClick={() => {
+            if (!showPrices) { window.location.href = "/login"; return; }
+            if (product.stock > 0) { addItem(product, 1); onAddToCart?.(product); }
+          }}
           className="btn-gold"
           style={{
             width: "100%", padding: "8px", borderRadius: 8, border: "none",
@@ -142,7 +164,7 @@ export default function ProductCard({ product, onAddToCart }: Props) {
           }}
         >
           <ShoppingCart size={13} />
-          Adicionar
+          {showPrices ? "Adicionar" : "Entrar para comprar"}
         </button>
       </div>
     </div>

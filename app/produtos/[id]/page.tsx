@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ShoppingCart, Heart, ChevronRight, Check, Package, Shield, RotateCcw, Loader2 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useAuth } from "@/lib/auth-mock";
+import { HIDE_PRICES_FOR_GUESTS } from "@/lib/store-config";
 import { createClient } from "@/lib/supabase/client";
 import ProductCard from "@/app/components/ui/ProductCard";
 import { Product } from "@/lib/products-mock";
@@ -47,6 +49,8 @@ export default function ProductPage() {
   const params = useParams();
   const slug   = typeof params.id === "string" ? params.id : "";
   const { addItem } = useCart();
+  const { loggedIn } = useAuth();
+  const showPrices = !HIDE_PRICES_FOR_GUESTS || loggedIn;
 
   const [product,      setProduct]      = useState<Product | null>(null);
   const [related,      setRelated]      = useState<Product[]>([]);
@@ -107,6 +111,7 @@ export default function ProductPage() {
     ? Math.round((1 - product.price / product.originalPrice) * 100) : null;
 
   function handleAddToCart() {
+    if (!showPrices) { window.location.href = "/login"; return; }
     if (product) addItem(product, qty, selectedSize ?? undefined, selectedSide ?? undefined, selectedColor ?? undefined);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
@@ -168,11 +173,21 @@ export default function ProductPage() {
 
           {/* preço */}
           <div style={{ marginBottom: 20 }}>
-            {product.originalPrice && product.originalPrice > product.price && <p style={{ color: "var(--gray-mid)", fontSize: 14, textDecoration: "line-through" }}>R$ {product.originalPrice.toFixed(2).replace(".",",")}</p>}
+{showPrices ? (<>
+                        {product.originalPrice && product.originalPrice > product.price && <p style={{ color: "var(--gray-mid)", fontSize: 14, textDecoration: "line-through" }}>R$ {product.originalPrice.toFixed(2).replace(".",",")}</p>}
             <p style={{ fontSize: 32, fontWeight: 800, background: "linear-gradient(135deg,#8B6914,#C9A84C)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1 }}>
               R$ {product.price.toFixed(2).replace(".",",")}
             </p>
             <p style={{ color: "var(--gray-mid)", fontSize: 12, marginTop: 4 }}>ou 3x de R$ {(product.price/3).toFixed(2).replace(".",",")} sem juros</p>
+            </>) : (
+              <Link href="/login" style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                fontSize: 16, fontWeight: 600, color: "var(--gold-dark)",
+                textDecoration: "none", padding: "6px 0",
+              }}>
+                🔒 Entre na sua conta para ver o preço
+              </Link>
+            )}
           </div>
 
           {/* tamanhos */}
@@ -272,7 +287,7 @@ export default function ProductPage() {
             <button onClick={handleAddToCart} className="btn-gold"
               disabled={(!!product.sizes?.length && !selectedSize) || (!!product.sides?.length && !selectedSide) || (!!product.colors?.length && !selectedColor)}
               style={{ flex: 1, padding: "13px", borderRadius: 10, border: "none", fontSize: 14, fontWeight: 600, cursor: product.stock === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: product.stock === 0 ? 0.5 : 1 }}>
-              {addedToCart ? <><Check size={16} />Adicionado!</> : <><ShoppingCart size={16} />Adicionar ao carrinho</>}
+              {!showPrices ? <>🔒 Entrar para comprar</> : addedToCart ? <><Check size={16} />Adicionado!</> : <><ShoppingCart size={16} />Adicionar ao carrinho</>}
             </button>
             <button style={{ width: 48, height: 48, borderRadius: 10, border: "1px solid rgba(0,0,0,0.15)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Heart size={18} style={{ color: "var(--gray-mid)" }} />
@@ -280,7 +295,7 @@ export default function ProductPage() {
           </div>
 
           {/* WhatsApp */}
-          <a href={`https://wa.me/5519997103023?text=${encodeURIComponent(`Olá! Tenho interesse no produto: ${product.name} (R$ ${product.price.toFixed(2).replace(".",",")})`)}` }
+          <a href={`https://wa.me/5519997103023?text=${encodeURIComponent(showPrices ? `Olá! Tenho interesse no produto: ${product.name} (R$ ${product.price.toFixed(2).replace(".",",")})` : `Olá! Tenho interesse no produto: ${product.name}`)}` }
             target="_blank" rel="noopener noreferrer"
             style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "12px", borderRadius: 10, border: "1px solid rgba(37,211,102,0.3)", color: "#25D366", background: "rgba(37,211,102,0.06)", textDecoration: "none", fontSize: 14, fontWeight: 600, marginBottom: 20 }}>
             💬 Comprar via WhatsApp

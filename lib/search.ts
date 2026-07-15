@@ -159,7 +159,7 @@ export async function searchProducts(query: string): Promise<Product[]> {
 }
 
 /* ── sugestões do dropdown ───────────────────────────────────── */
-export async function getSuggestions(query: string): Promise<SearchSuggestion[]> {
+export async function getSuggestions(query: string, includePrices = true): Promise<SearchSuggestion[]> {
   if (!query.trim() || query.length < 2) return [];
 
   let index: SearchIndex;
@@ -197,7 +197,7 @@ export async function getSuggestions(query: string): Promise<SearchSuggestion[]>
     results.push({
       type:     "produto",
       label:    item.name,
-      sublabel: `R$ ${item.price.toFixed(2).replace(".", ",")}`,
+      sublabel: includePrices ? `R$ ${item.price.toFixed(2).replace(".", ",")}` : undefined,
       href:     `/produtos/${item.slug}`,
       product:  item,
     });
